@@ -6,6 +6,7 @@ import Service.BusService;
 import Service.ChauffeurService;
 import Service.EtudiantService;
 import Service.TrajetService;
+import Service.IncidentService;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -26,6 +27,7 @@ public class AdminDashboard extends JFrame {
     private final ChauffeurService chauffeurService;
     private final EtudiantService etudiantService;
     private final TrajetService trajetService;
+    private final IncidentService incidentService;
 
     public AdminDashboard() {
         setTitle("Admin - Gestion Transport Scolaire");
@@ -49,12 +51,14 @@ public class AdminDashboard extends JFrame {
         chauffeurService = new ChauffeurService();
         etudiantService = new EtudiantService();
         trajetService = new TrajetService();
+        incidentService = new IncidentService();
 
         // Ajout des différentes vues (Panels)
         contentPanel.add(createBusPanel(), "BUS");
         contentPanel.add(createChauffeurPanel(), "CHAUFFEUR");
         contentPanel.add(createEtudiantPanel(), "ETUDIANT");
         contentPanel.add(createTrajetPanel(), "TRAJET");
+        contentPanel.add(createIncidentPanel(), "INCIDENT");
 
         add(contentPanel, BorderLayout.CENTER);
     }
@@ -77,6 +81,7 @@ public class AdminDashboard extends JFrame {
         sidebar.add(createNavButton("Gestion Chauffeurs", "CHAUFFEUR"));
         sidebar.add(createNavButton("Gestion Étudiants", "ETUDIANT"));
         sidebar.add(createNavButton("Lignes & Trajets", "TRAJET"));
+        sidebar.add(createNavButton("Incidents", "INCIDENT"));
 
         return sidebar;
     }
@@ -156,6 +161,7 @@ public class AdminDashboard extends JFrame {
 
         JTextField txtNom = new JTextField(10);
         JTextField txtPrenom = new JTextField(10);
+        JPasswordField txtPassword = new JPasswordField(10);
         JTextField txtTypePermis = new JTextField(5);
         JButton btnAdd = new JButton("Ajouter Chauffeur");
         btnAdd.setBackground(ACCENT_COLOR);
@@ -165,6 +171,8 @@ public class AdminDashboard extends JFrame {
         formPanel.add(txtNom);
         formPanel.add(new JLabel("Prénom:"));
         formPanel.add(txtPrenom);
+        formPanel.add(new JLabel("Password:"));
+        formPanel.add(txtPassword);
         formPanel.add(new JLabel("Permis:"));
         formPanel.add(txtTypePermis);
         formPanel.add(btnAdd);
@@ -177,11 +185,12 @@ public class AdminDashboard extends JFrame {
         loadChauffeurs(model);
 
         btnAdd.addActionListener(_ -> {
-            Chauffeur chauffeur = new Chauffeur(0, txtNom.getText(), txtPrenom.getText(), txtTypePermis.getText());
+            Chauffeur chauffeur = new Chauffeur(0, txtNom.getText(), txtPrenom.getText(), new String(txtPassword.getPassword()), txtTypePermis.getText());
             chauffeurService.addChauffeur(chauffeur);
             loadChauffeurs(model);
             txtNom.setText("");
             txtPrenom.setText("");
+            txtPassword.setText("");
             txtTypePermis.setText("");
         });
 
@@ -193,20 +202,23 @@ public class AdminDashboard extends JFrame {
     private void loadChauffeurs(DefaultTableModel model) {
         model.setRowCount(0);
         for (Chauffeur chauffeur : chauffeurService.getAllChauffeurs()) {
-            model.addRow(new Object[]{chauffeur.getId(), chauffeur.getNom(), chauffeur.getPrenom()});
+            model.addRow(new Object[]{chauffeur.getId(), chauffeur.getNom(), chauffeur.getPrenom(), chauffeur.getTypePermis()});
         }
     }
 
-            //model.addRow(new Object[]{chauffeur.getId(), chauffeur.getNom(), chauffeur.getPrenom(), chauffeur.getTypePermis()});
+    //model.addRow(new Object[]{chauffeur.getId(), chauffeur.getNom(), chauffeur.getPrenom(), chauffeur.getTypePermis()});
     // Remplace toute la méthode createEtudiantPanel par celle-ci dans AdminDashboard.java
 
     private JPanel createEtudiantPanel() {
-        JPanel panel = new JPanel(new BorderLayout());
+        JPanel panel = new JPanel(new BorderLayout(10, 10));
         panel.setBorder(new EmptyBorder(20, 20, 20, 20));
 
-        // Zone de formulaire (Haut)
-        JPanel formPanel = new JPanel(new GridLayout(6, 2, 10, 10)); // Grille pour aligner proprement
-        formPanel.setBorder(BorderFactory.createTitledBorder("Inscrire un Étudiant"));
+        // --- Panneau du formulaire ---
+        JPanel formPanel = new JPanel(new GridBagLayout());
+        formPanel.setBorder(BorderFactory.createTitledBorder("Gestion des Étudiants"));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(8, 8, 8, 8);
+        gbc.anchor = GridBagConstraints.WEST;
 
         // --- Champs de saisie ---
         JTextField txtNom = new JTextField();
@@ -214,78 +226,145 @@ public class AdminDashboard extends JFrame {
         JTextField txtNumCarte = new JTextField();
         JPasswordField txtPassword = new JPasswordField();
         JTextField txtArretPrincipal = new JTextField();
+        JComboBox<String> comboStatut = new JComboBox<>(new String[]{"Non Payé", "Payé"});
+        JLabel etudiantIdLabel = new JLabel();
 
-        JButton btnAdd = new JButton("Ajouter Étudiant");
-        btnAdd.setBackground(ACCENT_COLOR);
-        btnAdd.setForeground(Color.WHITE);
+        // --- Ajout des composants au formulaire ---
+        gbc.gridx = 0; gbc.gridy = 0; gbc.anchor = GridBagConstraints.EAST;
+        formPanel.add(new JLabel("Nom:"), gbc);
+        gbc.gridx = 1; gbc.gridy = 0; gbc.fill = GridBagConstraints.HORIZONTAL; gbc.weightx = 1.0;
+        formPanel.add(txtNom, gbc);
 
-        // Ajout des composants au formulaire
-        formPanel.add(new JLabel("Nom:"));
-        formPanel.add(txtNom);
+        gbc.gridx = 0; gbc.gridy = 1; gbc.anchor = GridBagConstraints.EAST; gbc.weightx = 0;
+        formPanel.add(new JLabel("Prénom:"), gbc);
+        gbc.gridx = 1; gbc.gridy = 1; gbc.fill = GridBagConstraints.HORIZONTAL; gbc.weightx = 1.0;
+        formPanel.add(txtPrenom, gbc);
 
-        formPanel.add(new JLabel("Prénom:"));
-        formPanel.add(txtPrenom);
+        gbc.gridx = 0; gbc.gridy = 2; gbc.anchor = GridBagConstraints.EAST; gbc.weightx = 0;
+        formPanel.add(new JLabel("N° Carte:"), gbc);
+        gbc.gridx = 1; gbc.gridy = 2; gbc.fill = GridBagConstraints.HORIZONTAL; gbc.weightx = 1.0;
+        formPanel.add(txtNumCarte, gbc);
 
-        formPanel.add(new JLabel("N° Carte:"));
-        formPanel.add(txtNumCarte);
+        gbc.gridx = 0; gbc.gridy = 3; gbc.anchor = GridBagConstraints.EAST; gbc.weightx = 0;
+        formPanel.add(new JLabel("Mot de passe:"), gbc);
+        gbc.gridx = 1; gbc.gridy = 3; gbc.fill = GridBagConstraints.HORIZONTAL; gbc.weightx = 1.0;
+        formPanel.add(txtPassword, gbc);
 
-        formPanel.add(new JLabel("Mot de passe:"));
-        formPanel.add(txtPassword);
+        gbc.gridx = 0; gbc.gridy = 4; gbc.anchor = GridBagConstraints.EAST; gbc.weightx = 0;
+        formPanel.add(new JLabel("Arrêt Principal:"), gbc);
+        gbc.gridx = 1; gbc.gridy = 4; gbc.fill = GridBagConstraints.HORIZONTAL; gbc.weightx = 1.0;
+        formPanel.add(txtArretPrincipal, gbc);
 
-        formPanel.add(new JLabel("Arrêt Principal:"));
-        formPanel.add(txtArretPrincipal);
+        gbc.gridx = 0; gbc.gridy = 5; gbc.anchor = GridBagConstraints.EAST; gbc.weightx = 0;
+        formPanel.add(new JLabel("Statut Paiement:"), gbc);
+        gbc.gridx = 1; gbc.gridy = 5; gbc.fill = GridBagConstraints.HORIZONTAL; gbc.weightx = 1.0;
+        formPanel.add(comboStatut, gbc);
 
-        formPanel.add(new JLabel("")); // Espace vide pour l'alignement
-        formPanel.add(btnAdd);
+        // --- Panneau pour les boutons ---
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        JButton btnAdd = createStyledButton("Ajouter", ACCENT_COLOR);
+        JButton btnUpdate = createStyledButton("Modifier", new Color(243, 156, 18));
+        JButton btnDelete = createStyledButton("Supprimer", new Color(231, 76, 60));
+        btnUpdate.setEnabled(false);
+        btnDelete.setEnabled(false);
 
-        // --- Tableau (Centre) ---
-        // On ajoute "Prénom" et "Statut" aux colonnes
+        buttonPanel.add(btnAdd);
+        buttonPanel.add(btnUpdate);
+        buttonPanel.add(btnDelete);
+
+        gbc.gridx = 1; gbc.gridy = 6; gbc.fill = GridBagConstraints.NONE; gbc.anchor = GridBagConstraints.EAST;
+        formPanel.add(buttonPanel, gbc);
+
+        // --- Tableau ---
         String[] columns = {"ID", "Nom", "Prénom", "N° Carte", "Arrêt", "Statut"};
         DefaultTableModel model = new DefaultTableModel(columns, 0);
         JTable table = new JTable(model);
-        table.setRowHeight(25);
-
-        // Chargement initial des données
+        table.setRowHeight(28);
+        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         loadEtudiants(model);
 
-        // --- Action du bouton Ajouter ---
+        // --- Logique de sélection et actions ---
+        table.getSelectionModel().addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting() && table.getSelectedRow() != -1) {
+                int row = table.getSelectedRow();
+                Object idValue = model.getValueAt(row, 0);
+                Object nomValue = model.getValueAt(row, 1);
+                Object prenomValue = model.getValueAt(row, 2);
+                Object numCarteValue = model.getValueAt(row, 3);
+                Object arretValue = model.getValueAt(row, 4);
+                Object statutValue = model.getValueAt(row, 5);
+
+                etudiantIdLabel.setText(idValue != null ? idValue.toString() : "");
+                txtNom.setText(nomValue != null ? nomValue.toString() : "");
+                txtPrenom.setText(prenomValue != null ? prenomValue.toString() : "");
+                txtNumCarte.setText(numCarteValue != null ? numCarteValue.toString() : "");
+                txtArretPrincipal.setText(arretValue != null ? arretValue.toString() : "");
+                comboStatut.setSelectedItem(statutValue != null ? statutValue.toString() : "Non Payé");
+
+                txtPassword.setText(""); // Ne pas afficher le mot de passe
+                btnUpdate.setEnabled(true);
+                btnDelete.setEnabled(true);
+            }
+        });
+
         btnAdd.addActionListener(e -> {
             try {
-                // Vérification basique
-                if (txtNom.getText().isEmpty() || txtNumCarte.getText().isEmpty()) {
-                    JOptionPane.showMessageDialog(this, "Le nom et le numéro de carte sont obligatoires.");
-                    return;
-                }
-
-                // Création de l'objet Etudiant avec TOUS les champs requis par Etudiant.java
-                Etudiant etudiant = new Etudiant(
-                        0,                                      // ID (généré auto ou 0)
-                        txtNom.getText(),                       // Nom
-                        txtPrenom.getText(),                    // Prénom
-                        txtNumCarte.getText(),                  // Numéro Carte
-                        new String(txtPassword.getPassword()),  // Mot de passe
-                        txtArretPrincipal.getText(),            // Arrêt
-                        "Non Payé"                              // Statut par défaut
-                );
-
+                Etudiant etudiant = new Etudiant(0, txtNom.getText(), txtPrenom.getText(), txtNumCarte.getText(), new String(txtPassword.getPassword()), txtArretPrincipal.getText(), comboStatut.getSelectedItem().toString());
                 etudiantService.addEtudiant(etudiant);
-
-                // Rafraîchir le tableau et vider les champs
                 loadEtudiants(model);
-                txtNom.setText("");
-                txtPrenom.setText("");
-                txtNumCarte.setText("");
-                txtPassword.setText("");
-                txtArretPrincipal.setText("");
-
+                clearEtudiantForm(txtNom, txtPrenom, txtNumCarte, txtPassword, txtArretPrincipal, table, btnUpdate, btnDelete);
             } catch (Exception ex) {
-                JOptionPane.showMessageDialog(this, "Erreur lors de l'ajout : " + ex.getMessage());
+                JOptionPane.showMessageDialog(this, "Erreur lors de l'ajout: " + ex.getMessage(), "Erreur", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+
+        btnUpdate.addActionListener(e -> {
+            try {
+                int id = Integer.parseInt(etudiantIdLabel.getText());
+                String password = new String(txtPassword.getPassword());
+                // Si le champ mot de passe est vide, on ne le met pas à jour
+                if (password.isEmpty()) {
+                    // Il faudrait une méthode pour récupérer l'ancien mot de passe
+                    // Pour cet exemple, on va juste ne pas le changer.
+                    // Vous devriez implémenter une logique plus sécurisée
+                    Etudiant existingEtudiant = etudiantService.getEtudiantById(id); // Méthode à créer
+                    password = existingEtudiant.getPassword();
+                }
+                Etudiant etudiant = new Etudiant(id, txtNom.getText(), txtPrenom.getText(), txtNumCarte.getText(), password, txtArretPrincipal.getText(), comboStatut.getSelectedItem().toString());
+                etudiantService.updateEtudiant(etudiant);
+                loadEtudiants(model);
+                clearEtudiantForm(txtNom, txtPrenom, txtNumCarte, txtPassword, txtArretPrincipal, table, btnUpdate, btnDelete);
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "Erreur lors de la modification: " + ex.getMessage(), "Erreur", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+
+        btnDelete.addActionListener(e -> {
+            if (table.getSelectedRow() != -1) {
+                int confirm = JOptionPane.showConfirmDialog(this, "Êtes-vous sûr de vouloir supprimer cet étudiant ?", "Confirmation", JOptionPane.YES_NO_OPTION);
+                if (confirm == JOptionPane.YES_OPTION) {
+                    int id = Integer.parseInt(etudiantIdLabel.getText());
+                    etudiantService.deleteEtudiant(id);
+                    loadEtudiants(model);
+                    clearEtudiantForm(txtNom, txtPrenom, txtNumCarte, txtPassword, txtArretPrincipal, table, btnUpdate, btnDelete);
+                }
             }
         });
 
         panel.add(formPanel, BorderLayout.NORTH);
         panel.add(new JScrollPane(table), BorderLayout.CENTER);
         return panel;
+    }
+
+    private void clearEtudiantForm(JTextField txtNom, JTextField txtPrenom, JTextField txtNumCarte, JPasswordField txtPassword, JTextField txtArretPrincipal, JTable table, JButton btnUpdate, JButton btnDelete) {
+        txtNom.setText("");
+        txtPrenom.setText("");
+        txtNumCarte.setText("");
+        txtPassword.setText("");
+        txtArretPrincipal.setText("");
+        table.clearSelection();
+        btnUpdate.setEnabled(false);
+        btnDelete.setEnabled(false);
     }
 
     private void loadEtudiants(DefaultTableModel model) {
@@ -304,50 +383,147 @@ public class AdminDashboard extends JFrame {
 
 
            // model.addRow(new Object[]{etudiant.getId(), etudiant.getNomComplet(), etudiant.getNumCarte(), etudiant.getArretPrincipal()});
-    private JPanel createTrajetPanel() {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBorder(new EmptyBorder(20, 20, 20, 20));
+           // --- VUE 4 : GESTION DES TRAJETS ---
+           private JPanel createTrajetPanel() {
+               JPanel panel = new JPanel(new BorderLayout(10, 10));
+               panel.setBorder(new EmptyBorder(20, 20, 20, 20));
 
-        JPanel formPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        formPanel.setBorder(BorderFactory.createTitledBorder("Créer un Trajet"));
+               // --- Panneau du formulaire ---
+               JPanel formPanel = new JPanel(new GridBagLayout());
+               formPanel.setBorder(BorderFactory.createTitledBorder("Gestion des Trajets"));
+               GridBagConstraints gbc = new GridBagConstraints();
+               gbc.insets = new Insets(8, 8, 8, 8); // Plus d'espacement
+               gbc.anchor = GridBagConstraints.WEST;
 
-        JTextField txtDepart = new JTextField(15);
-        JTextField txtArrivee = new JTextField(15);
-        JTextField txtHeure = new JTextField(8);
-        JComboBox<Bus> comboBus = new JComboBox<>(busService.getAllBuses().toArray(new Bus[0]));
-        JComboBox<Chauffeur> comboChauffeur = new JComboBox<>(chauffeurService.getAllChauffeurs().toArray(new Chauffeur[0]));
-        JButton btnAdd = new JButton("Ajouter Trajet");
-        btnAdd.setBackground(ACCENT_COLOR);
-        btnAdd.setForeground(Color.WHITE);
+               // --- Champs de saisie ---
+               JTextField txtDepart = new JTextField();
+               JTextField txtArrivee = new JTextField();
+               JTextField txtHeure = new JTextField();
+               JLabel trajetIdLabel = new JLabel();
 
-        formPanel.add(new JLabel("Départ:"));
-        formPanel.add(txtDepart);
-        formPanel.add(new JLabel("Arrivée:"));
-        formPanel.add(txtArrivee);
-        formPanel.add(new JLabel("Heure (HH:mm):"));
-        formPanel.add(txtHeure);
-        formPanel.add(new JLabel("Bus:"));
-        formPanel.add(comboBus);
-        formPanel.add(new JLabel("Chauffeur:"));
-        formPanel.add(comboChauffeur);
-        formPanel.add(btnAdd);
+               JComboBox<Bus> comboBus = new JComboBox<>(busService.getAllBuses().toArray(new Bus[0]));
+               JComboBox<Chauffeur> comboChauffeur = new JComboBox<>(chauffeurService.getAllChauffeurs().toArray(new Chauffeur[0]));
 
-        String[] columns = {"ID", "Départ", "Arrivée", "Heure", "Bus", "Chauffeur"};
-        DefaultTableModel model = new DefaultTableModel(columns, 0);
-        JTable table = new JTable(model);
-        table.setRowHeight(25);
+               // --- Ajout des composants au formulaire avec GridBagLayout ---
+               gbc.gridx = 0; gbc.gridy = 0; gbc.anchor = GridBagConstraints.EAST;
+               formPanel.add(new JLabel("Départ:"), gbc);
+               gbc.gridx = 1; gbc.gridy = 0; gbc.fill = GridBagConstraints.HORIZONTAL; gbc.weightx = 1.0; gbc.anchor = GridBagConstraints.WEST;
+               formPanel.add(txtDepart, gbc);
 
-        loadTrajets(model);
+               gbc.gridx = 0; gbc.gridy = 1; gbc.anchor = GridBagConstraints.EAST; gbc.weightx = 0;
+               formPanel.add(new JLabel("Arrivée:"), gbc);
+               gbc.gridx = 1; gbc.gridy = 1; gbc.fill = GridBagConstraints.HORIZONTAL; gbc.weightx = 1.0; gbc.anchor = GridBagConstraints.WEST;
+               formPanel.add(txtArrivee, gbc);
 
-        btnAdd.addActionListener(_ -> {
-            Trajet trajet = new Trajet(0, txtDepart.getText(), txtArrivee.getText(), java.time.LocalTime.parse(txtHeure.getText()), (Bus) comboBus.getSelectedItem(), (Chauffeur) comboChauffeur.getSelectedItem());
-            trajetService.addTrajet(trajet);
-            loadTrajets(model);
-        });
+               gbc.gridx = 0; gbc.gridy = 2; gbc.anchor = GridBagConstraints.EAST; gbc.weightx = 0;
+               formPanel.add(new JLabel("Heure (HH:mm):"), gbc);
+               gbc.gridx = 1; gbc.gridy = 2; gbc.fill = GridBagConstraints.HORIZONTAL; gbc.weightx = 1.0; gbc.anchor = GridBagConstraints.WEST;
+               formPanel.add(txtHeure, gbc);
 
-        panel.add(formPanel, BorderLayout.NORTH);
-        panel.add(new JScrollPane(table), BorderLayout.CENTER);
-        return panel;
+               gbc.gridx = 0; gbc.gridy = 3; gbc.anchor = GridBagConstraints.EAST; gbc.weightx = 0;
+               formPanel.add(new JLabel("Bus:"), gbc);
+               gbc.gridx = 1; gbc.gridy = 3; gbc.fill = GridBagConstraints.HORIZONTAL; gbc.weightx = 1.0; gbc.anchor = GridBagConstraints.WEST;
+               formPanel.add(comboBus, gbc);
+
+               gbc.gridx = 0; gbc.gridy = 4; gbc.anchor = GridBagConstraints.EAST; gbc.weightx = 0;
+               formPanel.add(new JLabel("Chauffeur:"), gbc);
+               gbc.gridx = 1; gbc.gridy = 4; gbc.fill = GridBagConstraints.HORIZONTAL; gbc.weightx = 1.0; gbc.anchor = GridBagConstraints.WEST;
+               formPanel.add(comboChauffeur, gbc);
+
+               // --- Panneau pour les boutons ---
+               JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+               JButton btnAdd = createStyledButton("Ajouter", ACCENT_COLOR);
+               JButton btnUpdate = createStyledButton("Modifier", new Color(243, 156, 18));
+               JButton btnDelete = createStyledButton("Supprimer", new Color(231, 76, 60));
+               btnUpdate.setEnabled(false);
+               btnDelete.setEnabled(false);
+
+               buttonPanel.add(btnAdd);
+               buttonPanel.add(btnUpdate);
+               buttonPanel.add(btnDelete);
+
+               gbc.gridx = 1; gbc.gridy = 5; gbc.fill = GridBagConstraints.NONE; gbc.anchor = GridBagConstraints.EAST;
+               formPanel.add(buttonPanel, gbc);
+
+               // --- Tableau ---
+               String[] columns = {"ID", "Départ", "Arrivée", "Heure", "Bus", "Chauffeur"};
+               DefaultTableModel model = new DefaultTableModel(columns, 0);
+               JTable table = new JTable(model);
+               table.setRowHeight(28);
+               table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+               loadTrajets(model);
+
+               // --- Logique de sélection et actions ---
+               table.getSelectionModel().addListSelectionListener(e -> {
+                   if (!e.getValueIsAdjusting() && table.getSelectedRow() != -1) {
+                       int row = table.getSelectedRow();
+                       trajetIdLabel.setText(model.getValueAt(row, 0).toString());
+                       txtDepart.setText(model.getValueAt(row, 1).toString());
+                       txtArrivee.setText(model.getValueAt(row, 2).toString());
+                       txtHeure.setText(model.getValueAt(row, 3).toString());
+                       comboBus.setSelectedItem(model.getValueAt(row, 4));
+                       comboChauffeur.setSelectedItem(model.getValueAt(row, 5));
+                       btnUpdate.setEnabled(true);
+                       btnDelete.setEnabled(true);
+                   }
+               });
+
+               btnAdd.addActionListener(e -> {
+                   try {
+                       Trajet trajet = new Trajet(0, txtDepart.getText(), txtArrivee.getText(), java.time.LocalTime.parse(txtHeure.getText()), (Bus) comboBus.getSelectedItem(), (Chauffeur) comboChauffeur.getSelectedItem());
+                       trajetService.addTrajet(trajet);
+                       loadTrajets(model);
+                       clearTrajetForm(txtDepart, txtArrivee, txtHeure, table, btnUpdate, btnDelete);
+                   } catch (Exception ex) {
+                       JOptionPane.showMessageDialog(this, "Erreur lors de l'ajout: " + ex.getMessage(), "Erreur", JOptionPane.ERROR_MESSAGE);
+                   }
+               });
+
+               btnUpdate.addActionListener(e -> {
+                   try {
+                       int id = Integer.parseInt(trajetIdLabel.getText());
+                       Trajet trajet = new Trajet(id, txtDepart.getText(), txtArrivee.getText(), java.time.LocalTime.parse(txtHeure.getText()), (Bus) comboBus.getSelectedItem(), (Chauffeur) comboChauffeur.getSelectedItem());
+                       trajetService.updateTrajet(trajet);
+                       loadTrajets(model);
+                       clearTrajetForm(txtDepart, txtArrivee, txtHeure, table, btnUpdate, btnDelete);
+                   } catch (Exception ex) {
+                       JOptionPane.showMessageDialog(this, "Erreur lors de la modification: " + ex.getMessage(), "Erreur", JOptionPane.ERROR_MESSAGE);
+                   }
+               });
+
+               btnDelete.addActionListener(e -> {
+                   if (table.getSelectedRow() != -1) {
+                       int confirm = JOptionPane.showConfirmDialog(this, "Êtes-vous sûr de vouloir supprimer ce trajet ?", "Confirmation", JOptionPane.YES_NO_OPTION);
+                       if (confirm == JOptionPane.YES_OPTION) {
+                           int id = Integer.parseInt(trajetIdLabel.getText());
+                           trajetService.deleteTrajet(id);
+                           loadTrajets(model);
+                           clearTrajetForm(txtDepart, txtArrivee, txtHeure, table, btnUpdate, btnDelete);
+                       }
+                   }
+               });
+
+               panel.add(formPanel, BorderLayout.NORTH);
+               panel.add(new JScrollPane(table), BorderLayout.CENTER);
+               return panel;
+           }
+
+    private JButton createStyledButton(String text, Color color) {
+        JButton button = new JButton(text);
+        button.setBackground(color);
+        button.setForeground(Color.WHITE);
+        button.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        button.setFocusPainted(false);
+        return button;
+    }
+
+    private void clearTrajetForm(JTextField txtDepart, JTextField txtArrivee, JTextField txtHeure, JTable table, JButton btnUpdate, JButton btnDelete) {
+        txtDepart.setText("");
+        txtArrivee.setText("");
+        txtHeure.setText("");
+        table.clearSelection();
+        btnUpdate.setEnabled(false);
+        btnDelete.setEnabled(false);
     }
 
     private void loadTrajets(DefaultTableModel model) {
@@ -356,6 +532,41 @@ public class AdminDashboard extends JFrame {
             model.addRow(new Object[]{trajet.getId(), trajet.getPointDepart(), trajet.getPointArrivee(), trajet.getHeureDepart(), trajet.getBus(), trajet.getChauffeur()});
         }
     }
+
+    // --- VUE 5 : GESTION DES INCIDENTS ---
+    private JPanel createIncidentPanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBorder(new EmptyBorder(20, 20, 20, 20));
+
+        JLabel titleLabel = new JLabel("Liste des Incidents Signalés");
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 16));
+        panel.add(titleLabel, BorderLayout.NORTH);
+
+        String[] columns = {"ID", "Bus", "Chauffeur", "Description", "Date", "Statut"};
+        DefaultTableModel model = new DefaultTableModel(columns, 0);
+        JTable table = new JTable(model);
+        table.setRowHeight(25);
+
+        loadIncidents(model);
+
+        panel.add(new JScrollPane(table), BorderLayout.CENTER);
+        return panel;
+    }
+
+    private void loadIncidents(DefaultTableModel model) {
+        model.setRowCount(0);
+        for (IncidentDetails incident : incidentService.getAllIncidentsDetails()) {
+            model.addRow(new Object[]{
+                    incident.getIncidentId(),
+                    incident.getBusMarque() + " (" + incident.getBusMatricule() + ")",
+                    incident.getChauffeurNom() + " " + incident.getChauffeurPrenom(),
+                    incident.getDescription(),
+                    incident.getDate(),
+                    incident.getStatus()
+            });
+        }
+    }
+
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             AdminDashboard dashboard = new AdminDashboard();

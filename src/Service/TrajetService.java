@@ -20,5 +20,12 @@ public class TrajetService {
     public void addTrajet(Trajet trajet) {
         trajetDAO.addTrajet(trajet);
     }
-}
 
+    public void updateTrajet(Trajet trajet) {
+        trajetDAO.updateTrajet(trajet);
+    }
+
+    public void deleteTrajet(int id) {
+        trajetDAO.deleteTrajet(id);
+    }
+}

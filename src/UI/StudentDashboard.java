@@ -1,6 +1,8 @@
 package UI;
 import Model.*;
+import Service.EtudiantService;
 import Service.TrajetService;
+
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
@@ -278,14 +280,21 @@ public class StudentDashboard extends JFrame {
         return panel;
     }
 
+
     public static void main(String[] args) {
         try {
-            // Mise à jour pour correspondre au constructeur (id, nom, prenom, carte, pass, arret, statut)
-            Etudiant etudiantTest = new Etudiant(1, "Moussaoui", "Ryad", "123456", "pass123", "Cité Universitaire 1", "Payé");
+            // On récupère un étudiant depuis la base de données
+            EtudiantService etudiantService = new EtudiantService();
+            Etudiant etudiant = etudiantService.getEtudiantById(13); // On prend l'étudiant avec l'ID 1
 
-            // On lance l'interface de test
+            if (etudiant == null) {
+                JOptionPane.showMessageDialog(null, "L'étudiant avec l'ID 1 n'a pas été trouvé.", "Erreur", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            // On lance l'interface
             SwingUtilities.invokeLater(() -> {
-                StudentDashboard frame = new StudentDashboard(etudiantTest);
+                StudentDashboard frame = new StudentDashboard(etudiant);
                 frame.setVisible(true);
             });
         } catch (Exception e) {

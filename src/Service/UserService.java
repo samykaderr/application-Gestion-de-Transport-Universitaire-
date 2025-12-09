@@ -13,7 +13,12 @@ public class UserService {
     }
 
     public Object login(String username, String password) {
-        return userDAO.login(username, password);
+        Object user = userDAO.login(username, password);
+        if (user == null) {
+            DATA.ChauffeurDAO chauffeurDAO = new DATA.ChauffeurDAO();
+            return chauffeurDAO.login(username, password);
+        }
+        return user;
     }
 }
 

@@ -24,4 +24,9 @@ public class Bus {
     public void setMatricule(String matricule) { this.matricule = matricule; }
     public void setMarque(String marque) { this.marque = marque; }
     public void setCapacite(int capacite) { this.capacite = capacite; }
+
+    @Override
+    public String toString() {
+        return marque + " (" + matricule + ")";
+    }
 }

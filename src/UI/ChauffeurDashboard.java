@@ -3,13 +3,17 @@ package UI;
 import Model.Bus;
 import Model.Chauffeur;
 import Model.Trajet;
+import Model.Incident;
 import Service.TrajetService;
+import Service.IncidentService;
+import Service.ChauffeurService;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.util.Date;
 import java.util.List;
 
 public class ChauffeurDashboard extends JFrame {
@@ -26,10 +30,16 @@ public class ChauffeurDashboard extends JFrame {
     private final CardLayout cardLayout;
     private final Chauffeur chauffeur;
     private final TrajetService trajetService;
+    private final IncidentService incidentService;
 
-    public ChauffeurDashboard(Chauffeur chauffeur) {
-        this.chauffeur = chauffeur;
+    public ChauffeurDashboard(int idChauffeur) {
+        ChauffeurService chauffeurService = new ChauffeurService();
+        this.chauffeur = chauffeurService.getChauffeurById(idChauffeur);
+        if (this.chauffeur == null) {
+            throw new IllegalArgumentException("Chauffeur not found for ID: " + idChauffeur);
+        }
         this.trajetService = new TrajetService();
+        this.incidentService = new IncidentService();
 
         setTitle("Espace Chauffeur - Transport Scolaire");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -52,6 +62,7 @@ public class ChauffeurDashboard extends JFrame {
         mainContentPanel.add(createProfilePanel(), "PROFIL");
         mainContentPanel.add(createPlanningPanel(), "PLANNING");
         mainContentPanel.add(createBusInfoPanel(), "BUS");
+        mainContentPanel.add(createIncidentPanel(), "INCIDENT");
 
         add(mainContentPanel, BorderLayout.CENTER);
     }
@@ -75,6 +86,7 @@ public class ChauffeurDashboard extends JFrame {
         sidebar.add(createMenuButton("Mon Profil", "PROFIL"));
         sidebar.add(createMenuButton("Mon Planning", "PLANNING"));
         sidebar.add(createMenuButton("Info Véhicule", "BUS"));
+        sidebar.add(createMenuButton("Signaler un Incident", "INCIDENT"));
 
         return sidebar;
     }
@@ -284,13 +296,98 @@ public class ChauffeurDashboard extends JFrame {
         return panel;
     }
 
+    // --- VUE 4 : SIGNALER UN INCIDENT ---
+    private JPanel createIncidentPanel() {
+        JPanel panel = new JPanel(new BorderLayout(10, 10));
+        panel.setBorder(new EmptyBorder(20, 20, 20, 20));
+        panel.setBackground(Color.WHITE);
+
+        // Titre
+        JLabel titleLabel = new JLabel("Signaler un Incident sur un Véhicule");
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 20));
+        titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        panel.add(titleLabel, BorderLayout.NORTH);
+
+        // Formulaire
+        JPanel formPanel = new JPanel(new GridBagLayout());
+        formPanel.setBackground(Color.WHITE);
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(5, 5, 5, 5);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        // Bus (non éditable, auto-rempli)
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        formPanel.add(new JLabel("Bus Concerné:"), gbc);
+
+        Bus assignedBus = getAssignedBus();
+        JTextField busField = new JTextField(assignedBus != null ? assignedBus.getMarque() + " - " + assignedBus.getMatricule() : "Aucun bus assigné");
+        busField.setEditable(false);
+        gbc.gridx = 1;
+        formPanel.add(busField, gbc);
+
+        // Description
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        formPanel.add(new JLabel("Description de l'incident:"), gbc);
+
+        JTextArea descriptionArea = new JTextArea(5, 20);
+        descriptionArea.setLineWrap(true);
+        descriptionArea.setWrapStyleWord(true);
+        JScrollPane scrollPane = new JScrollPane(descriptionArea);
+        gbc.gridx = 1;
+        gbc.gridy = 1;
+        gbc.weightx = 1.0;
+        gbc.weighty = 1.0;
+        gbc.fill = GridBagConstraints.BOTH;
+        formPanel.add(scrollPane, gbc);
+
+        panel.add(formPanel, BorderLayout.CENTER);
+
+        // Bouton de soumission
+        JButton submitButton = new JButton("Envoyer le Rapport");
+        submitButton.setBackground(ACCENT_COLOR);
+        submitButton.setForeground(Color.WHITE);
+        submitButton.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        submitButton.addActionListener(e -> {
+            if (assignedBus != null) {
+                String description = descriptionArea.getText();
+                if (description.trim().isEmpty()) {
+                    JOptionPane.showMessageDialog(this, "Veuillez décrire l'incident.", "Erreur", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+                Incident incident = new Incident(assignedBus.getId(), chauffeur.getId(), description, new Date(), "REPORTED");
+                incidentService.reportIncident(incident);
+                JOptionPane.showMessageDialog(this, "L'incident a été signalé avec succès.", "Confirmation", JOptionPane.INFORMATION_MESSAGE);
+                descriptionArea.setText("");
+            } else {
+                JOptionPane.showMessageDialog(this, "Vous n'êtes assigné à aucun bus pour le moment.", "Erreur", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+
+        panel.add(submitButton, BorderLayout.SOUTH);
+
+        return panel;
+    }
+
+    private Bus getAssignedBus() {
+        Bus assignedBus = null;
+        for(Trajet t : trajetService.getAllTrajets()) {
+            if(t.getChauffeur() != null && t.getChauffeur().getId() == chauffeur.getId() && t.getBus() != null) {
+                assignedBus = t.getBus();
+                break;
+            }
+        }
+        return assignedBus;
+    }
+
     // Méthode main pour tester l'interface indépendamment
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            // Création d'un chauffeur fictif pour le test
-            Chauffeur testChauffeur = new Chauffeur(1, "Brahimi", "Karim", "Permis D");
-            ChauffeurDashboard dashboard = new ChauffeurDashboard(testChauffeur);
+            int testChauffeurId = 12; // ID fictif pour le test
+            ChauffeurDashboard dashboard = new ChauffeurDashboard(testChauffeurId);
             dashboard.setVisible(true);
         });
     }
 }
+

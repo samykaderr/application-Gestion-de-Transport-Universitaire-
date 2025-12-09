@@ -20,5 +20,8 @@ public class ChauffeurService {
     public void addChauffeur(Chauffeur chauffeur) {
         chauffeurDAO.addChauffeur(chauffeur);
     }
-}
 
+    public Chauffeur getChauffeurById(int id) {
+        return chauffeurDAO.getChauffeurById(id);
+    }
+}
