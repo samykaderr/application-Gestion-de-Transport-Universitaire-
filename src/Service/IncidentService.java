@@ -21,4 +21,8 @@ public class IncidentService {
     public List<IncidentDetails> getAllIncidentsDetails() {
         return incidentDAO.getAllIncidentsDetails();
     }
+
+    public void deleteIncident(int incidentId) {
+        incidentDAO.deleteIncident(incidentId);
+    }
 }

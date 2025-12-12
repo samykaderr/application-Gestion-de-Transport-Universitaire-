@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1:3306
--- Generation Time: Dec 09, 2025 at 11:03 AM
+-- Generation Time: Dec 10, 2025 at 04:38 PM
 -- Server version: 9.1.0
 -- PHP Version: 8.3.14
 
@@ -20,6 +20,31 @@ SET time_zone = "+00:00";
 --
 -- Database: `transport_db`
 --
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `comptes_utilisateurs`
+--
+
+DROP TABLE IF EXISTS `comptes_utilisateurs`;
+CREATE TABLE IF NOT EXISTS `comptes_utilisateurs` (
+    `id` int NOT NULL AUTO_INCREMENT,
+    `email` varchar(255) NOT NULL,
+    `mot_de_passe` varchar(255) NOT NULL,
+    `role` enum('admin','etudiant','chauffeur') NOT NULL,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `email` (`email`)
+) ENGINE=MyISAM AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Dumping data for table `comptes_utilisateurs`
+--
+
+INSERT INTO `comptes_utilisateurs` (`id`, `email`, `mot_de_passe`, `role`) VALUES
+(1, 'admin@example.com', 'admin', 'admin'),
+(2, 'said.tadjine@example.com', 'saidc1', 'chauffeur'),
+(3, 'nadine.abdelfetah@example.com', 'nadine2005', 'etudiant');
 
 -- --------------------------------------------------------
 
@@ -56,17 +81,18 @@ CREATE TABLE IF NOT EXISTS `chauffeur` (
                                            `id` int NOT NULL AUTO_INCREMENT,
                                            `nom` varchar(50) DEFAULT NULL,
     `prenom` varchar(50) DEFAULT NULL,
-    `password` varchar(255) NOT NULL,
     `type_permis` varchar(50) DEFAULT NULL,
-    PRIMARY KEY (`id`)
+    `id_compte` int NOT NULL,
+    PRIMARY KEY (`id`),
+    KEY `id_compte` (`id_compte`)
     ) ENGINE=MyISAM AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Dumping data for table `chauffeur`
 --
 
-INSERT INTO `chauffeur` (`id`, `nom`, `prenom`, `password`, `type_permis`) VALUES
-    (2, 'Tadjine', 'Said', 'saidc1', 'c1');
+INSERT INTO `chauffeur` (`id`, `nom`, `prenom`, `type_permis`, `id_compte`) VALUES
+    (2, 'Tadjine', 'Said', 'c1', 2);
 
 -- --------------------------------------------------------
 
@@ -80,19 +106,44 @@ CREATE TABLE IF NOT EXISTS `etudiant` (
                                           `nom` varchar(255) NOT NULL,
     `prenom` varchar(255) DEFAULT NULL,
     `num_carte` varchar(100) NOT NULL,
-    `mot_de_passe` varchar(255) NOT NULL,
     `arret_principal` varchar(255) DEFAULT NULL,
     `statut_paiement` varchar(50) DEFAULT 'Non Payé',
+    `id_compte` int NOT NULL,
     PRIMARY KEY (`id`),
-    UNIQUE KEY `num_carte` (`num_carte`)
+    UNIQUE KEY `num_carte` (`num_carte`),
+    KEY `id_compte` (`id_compte`)
     ) ENGINE=MyISAM AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Dumping data for table `etudiant`
 --
 
-INSERT INTO `etudiant` (`id`, `nom`, `prenom`, `num_carte`, `mot_de_passe`, `arret_principal`, `statut_paiement`) VALUES
-    (10, 'Abdelfetah', 'NADINE', '232320051122', 'nadine2005', 'campus targa ouzemoure', 'Actif');
+INSERT INTO `etudiant` (`id`, `nom`, `prenom`, `num_carte`, `arret_principal`, `statut_paiement`, `id_compte`) VALUES
+    (10, 'Abdelfetah', 'NADINE', '232320051122', 'campus targa ouzemoure', 'Actif', 3);
+
+-- Ajout de la colonne email à la table etudiant
+ALTER TABLE etudiant ADD COLUMN email VARCHAR(255);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `etudiant_trajet`
+--
+
+DROP TABLE IF EXISTS `etudiant_trajet`;
+CREATE TABLE IF NOT EXISTS `etudiant_trajet` (
+                                                 `id_etudiant` int NOT NULL,
+                                                 `id_trajet` int NOT NULL,
+                                                 PRIMARY KEY (`id_etudiant`,`id_trajet`),
+    KEY `id_trajet` (`id_trajet`)
+    ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Dumping data for table `etudiant_trajet`
+--
+
+INSERT INTO `etudiant_trajet` (`id_etudiant`, `id_trajet`) VALUES
+    (10, 1);
 
 -- --------------------------------------------------------
 
@@ -102,12 +153,12 @@ INSERT INTO `etudiant` (`id`, `nom`, `prenom`, `num_carte`, `mot_de_passe`, `arr
 
 DROP TABLE IF EXISTS `incidents`;
 CREATE TABLE IF NOT EXISTS `incidents` (
-                                           `id` int NOT NULL AUTO_INCREMENT,
-                                           `bus_id` int NOT NULL,
-                                           `chauffeur_id` int NOT NULL,
-                                           `description` text,
-                                           `date` datetime DEFAULT NULL,
-                                           `status` varchar(50) DEFAULT NULL,
+     `id` int NOT NULL AUTO_INCREMENT,
+     `bus_id` int NOT NULL,
+     `chauffeur_id` int NOT NULL,
+     `description` text,
+     `date` datetime DEFAULT NULL,
+    `status` varchar(50) DEFAULT NULL,
     PRIMARY KEY (`id`),
     KEY `bus_id` (`bus_id`),
     KEY `chauffeur_id` (`chauffeur_id`)
@@ -121,8 +172,8 @@ CREATE TABLE IF NOT EXISTS `incidents` (
 
 DROP TABLE IF EXISTS `lignes`;
 CREATE TABLE IF NOT EXISTS `lignes` (
-                                        `id` int NOT NULL AUTO_INCREMENT,
-                                        `nom_ligne` varchar(50) DEFAULT NULL,
+     `id` int NOT NULL AUTO_INCREMENT,
+    `nom_ligne` varchar(50) DEFAULT NULL,
     `trajet` varchar(255) DEFAULT NULL,
     `chauffeur_nom` varchar(100) DEFAULT NULL,
     PRIMARY KEY (`id`)
@@ -136,12 +187,12 @@ CREATE TABLE IF NOT EXISTS `lignes` (
 
 DROP TABLE IF EXISTS `paiements`;
 CREATE TABLE IF NOT EXISTS `paiements` (
-                                           `id` int NOT NULL AUTO_INCREMENT,
-                                           `etudiant_id` int DEFAULT NULL,
-                                           `montant` decimal(10,2) DEFAULT NULL,
+    `id` int NOT NULL AUTO_INCREMENT,
+    `etudiant_id` int DEFAULT NULL,
+    `montant` decimal(10,2) DEFAULT NULL,
     `date_paiement` date DEFAULT NULL,
     `statut` varchar(20) DEFAULT NULL,
-    PRIMARY KEY (`id`)
+     PRIMARY KEY (`id`)
     ) ENGINE=MyISAM AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
@@ -149,7 +200,7 @@ CREATE TABLE IF NOT EXISTS `paiements` (
 --
 
 INSERT INTO `paiements` (`id`, `etudiant_id`, `montant`, `date_paiement`, `statut`) VALUES
-    (1, 1, 1500.00, '2023-09-01', 'ACTIF');
+    (1, 10, 1500.00, '2023-09-01', 'ACTIF');
 
 -- --------------------------------------------------------
 
@@ -159,8 +210,8 @@ INSERT INTO `paiements` (`id`, `etudiant_id`, `montant`, `date_paiement`, `statu
 
 DROP TABLE IF EXISTS `trajets`;
 CREATE TABLE IF NOT EXISTS `trajets` (
-                                         `id` int NOT NULL AUTO_INCREMENT,
-                                         `point_depart` varchar(255) NOT NULL,
+     `id` int NOT NULL AUTO_INCREMENT,
+    `point_depart` varchar(255) NOT NULL,
     `point_arrivee` varchar(255) NOT NULL,
     `heure_depart` time NOT NULL,
     `id_bus` int DEFAULT NULL,
@@ -184,28 +235,7 @@ INSERT INTO `trajets` (`id`, `point_depart`, `point_arrivee`, `heure_depart`, `i
 --
 
 DROP TABLE IF EXISTS `users`;
-CREATE TABLE IF NOT EXISTS `users` (
-                                       `id` int NOT NULL AUTO_INCREMENT,
-                                       `nom` varchar(50) NOT NULL,
-    `prenom` varchar(255) NOT NULL,
-    `password` varchar(255) NOT NULL,
-    `role` enum('admin','etudiant','chauffeur') NOT NULL,
-    `num_carte` varchar(50) DEFAULT NULL,
-    `arret_principal` varchar(100) DEFAULT NULL,
-    `statut_paiement` varchar(20) DEFAULT NULL,
-    PRIMARY KEY (`id`),
-    UNIQUE KEY `nom` (`nom`)
-    ) ENGINE=MyISAM AUTO_INCREMENT=15 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
---
--- Dumping data for table `users`
---
-
-INSERT INTO `users` (`id`, `nom`, `prenom`, `password`, `role`, `num_carte`, `arret_principal`, `statut_paiement`) VALUES
-                                                                                                                       (12, 'Achouche', 'Adel', 'Adel1985', 'chauffeur', '2222331107845', 'Residance 17 octobre', 'Actif'),
-                                                                                                                       (1, 'admin', 'admin', 'admin', 'admin', '', NULL, ''),
-                                                                                                                       (13, 'Haggani ', 'Maria', 'maria2005', 'etudiant', '23233311987645', 'targa ouzemour', NULL),
-                                                                                                                       (14, 'Benzaid', 'Islem', 'islem2005', 'etudiant', '232333102425', 'campus Targa ouzemour', NULL);
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

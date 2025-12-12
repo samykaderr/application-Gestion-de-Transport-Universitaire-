@@ -1,313 +1,186 @@
-# Explication du fonctionnement de l'application
+@startuml
 
-## Structure Générale
+skinparam classAttributeIconSize 0
 
-L'application est organisée en plusieurs couches pour séparer les responsabilités et faciliter la maintenance. Ces couches incluent :
-
-1. **UI (Interface Utilisateur)** : Contient les classes responsables de l'affichage graphique et de l'interaction avec l'utilisateur, comme `LoginFrame`, `ChauffeurDashboard`, et `StudentDashboard`.
-
-2. **Service** : Fournit une logique métier et agit comme un intermédiaire entre l'interface utilisateur et la couche DAO.
-
-3. **DAO (Data Access Object)** : Gère les interactions directes avec la base de données.
-
-4. **Model** : Définit les classes représentant les entités principales de l'application, comme `Chauffeur`, `Bus`, et `Trajet`.
-
----
-
-## Synchronisation entre les couches
-
-### 1. Interaction entre l'UI et le Service
-
-L'interface utilisateur utilise les classes de service pour récupérer ou envoyer des données.
- Par exemple, dans `LoginFrame`, la méthode `performLogin` appelle `userService.login(username, password)` pour authentifier un utilisateur.
-
-Si l'utilisateur est un chauffeur, son ID est passé au tableau de bord correspondant :
-
-```java
-new ChauffeurDashboard(((Chauffeur) user).getId()).setVisible(true);
-```
-
-Cela garantit que l'interface utilisateur reste simple et délègue la logique métier aux classes de service.
-
----
-
-### 2. Interaction entre le Service et le DAO
-
-Les classes de service appellent les méthodes DAO pour interagir avec la base de données. Par exemple, dans `ChauffeurService`, la méthode `getChauffeurById` utilise `ChauffeurDAO` pour récupérer un chauffeur spécifique :
-
-```java
-public Chauffeur getChauffeurById(int id) {
-    return chauffeurDAO.findById(id);
+class Admin {
+  - compte: CompteUtilisateur
+  - busList: List<Bus>
+  - chauffeurList: List<Chauffeur>
+  - etudiantList: List<Etudiant>
+  - trajetList: List<Trajet>
+  + Admin(compte: CompteUtilisateur)
+  + getCompte(): CompteUtilisateur
+  + addBus(bus: Bus): void
+  + getBusList(): List<Bus>
+  + addChauffeur(chauffeur: Chauffeur): void
+  + getChauffeurList(): List<Chauffeur>
+  + addEtudiant(etudiant: Etudiant): void
+  + getEtudiantList(): List<Etudiant>
+  + createTrajet(trajet: Trajet): void
+  + getTrajetList(): List<Trajet>
 }
-```
 
-Cette approche permet de centraliser la logique métier dans les services, tout en gardant les DAO responsables uniquement des opérations de base de données.
+class CompteUtilisateur {
+  - id: int
+  - email: String
+  - motDePasse: String
+  - role: String
+  + CompteUtilisateur(id: int, email: String, motDePasse: String, role: String)
+  + getId(): int
+  + getEmail(): String
+  + getMotDePasse(): String
+  + getRole(): String
+  + setId(id: int): void
+  + setEmail(email: String): void
+  + setMotDePasse(motDePasse: String): void
+  + setRole(role: String): void
+}
 
----
+class Etudiant {
+  - id: int
+  - nom: String
+  - prenom: String
+  - numCarte: String
+  - arretPrincipal: String
+  - statutPaiement: String
+  - idCompte: int
+  + Etudiant(id: int, nom: String, prenom: String, numCarte: String, arretPrincipal: String, statutPaiement: String, idCompte: int)
+  + getId(): int
+  + getNom(): String
+  + getPrenom(): String
+  + getStatutPaiement(): String
+  + getNumCarte(): String
+  + getArretPrincipal(): String
+  + getIdCompte(): int
+  + setId(id: int): void
+  + setNom(nom: String): void
+  + setPrenom(prenom: String): void
+  + setNumCarte(numCarte: String): void
+  + setArretPrincipal(arretPrincipal: String): void
+  + setStatutPaiement(statutPaiement: String): void
+  + setIdCompte(idCompte: int): void
+}
 
-### 3. Interaction entre le DAO et la Base de Données
+class Chauffeur {
+  - id: int
+  - nom: String
+  - prenom: String
+  - typePermis: String
+  - idCompte: int
+  + Chauffeur(id: int, nom: String, prenom: String, typePermis: String, idCompte: int)
+  + getId(): int
+  + getNom(): String
+  + getPrenom(): String
+  + getTypePermis(): String
+  + getIdCompte(): int
+  + setId(id: int): void
+  + setNom(nom: String): void
+  + setPrenom(prenom: String): void
+  + setTypePermis(typePermis: String): void
+  + setIdCompte(idCompte: int): void
+  + toString(): String
+}
 
-Les classes DAO exécutent des requêtes SQL pour lire ou écrire des données dans la base. Par exemple, dans `ChauffeurDAO`, la méthode `findById` exécute une requête SQL pour récupérer un chauffeur par son ID :
+class Bus {
+  - id: int
+  - matricule: String
+  - marque: String
+  - capacite: int
+  + Bus(id: int, matricule: String, marque: String, capacite: int)
+  + getId(): int
+  + getMatricule(): String
+  + getMarque(): String
+  + getCapacite(): int
+  + setId(id: int): void
+  + setMatricule(matricule: String): void
+  + setMarque(marque: String): void
+  + setCapacite(capacite: int): void
+  + toString(): String
+}
 
-```java
-String query = "SELECT * FROM chauffeur WHERE id = ?";
-PreparedStatement stmt = connection.prepareStatement(query);
-stmt.setInt(1, id);
-ResultSet rs = stmt.executeQuery();
-```
+class Trajet {
+  - id: int
+  - pointDepart: String
+  - pointArrivee: String
+  - heureDepart: LocalTime
+  - bus: Bus
+  - chauffeur: Chauffeur
+  + Trajet(id: int, pointDepart: String, pointArrivee: String, heureDepart: LocalTime, bus: Bus, chauffeur: Chauffeur)
+  + getId(): int
+  + getPointDepart(): String
+  + getPointArrivee(): String
+  + getHeureDepart(): LocalTime
+  + getBus(): Bus
+  + getChauffeur(): Chauffeur
+  + setId(id: int): void
+  + setPointDepart(pointDepart: String): void
+  + setPointArrivee(pointArrivee: String): void
+  + setHeureDepart(heureDepart: LocalTime): void
+  + setBus(bus: Bus): void
+  + setChauffeur(chauffeur: Chauffeur): void
+}
 
-Les résultats de la base de données sont ensuite transformés en objets du modèle, comme `Chauffeur`, pour être utilisés dans les couches supérieures.
+class Incident {
+  - id: int
+  - busId: int
+  - chauffeurId: int
+  - description: String
+  - date: Date
+  - status: String
+  + Incident(id: int, busId: int, chauffeurId: int, description: String, date: Date, status: String)
+  + getId(): int
+  + getBusId(): int
+  + getChauffeurId(): int
+  + getDescription(): String
+  + getDate(): Date
+  + getStatus(): String
+  + setId(id: int): void
+  + setBusId(busId: int): void
+  + setChauffeurId(chauffeurId: int): void
+  + setDescription(description: String): void
+  + setDate(date: Date): void
+  + setStatus(status: String): void
+}
 
----
+class IncidentDetails {
+  - incidentId: int
+  - busMarque: String
+  - busMatricule: String
+  - chauffeurNom: String
+  - chauffeurPrenom: String
+  - description: String
+  - date: Date
+  - status: String
+  + IncidentDetails(incidentId: int, busMarque: String, busMatricule: String, chauffeurNom: String, chauffeurPrenom: String, description: String, date: Date, status: String)
+  + getIncidentId(): int
+  + getBusMarque(): String
+  + getBusMatricule(): String
+  + getChauffeurNom(): String
+  + getChauffeurPrenom(): String
+  + getDescription(): String
+  + getDate(): Date
+  + getStatus(): String
+}
 
-### 4. Modèles comme intermédiaires
+' Relationships
+Admin "1" -- "1" CompteUtilisateur
+Admin "1" o-- "*" Bus
+Admin "1" o-- "*" Chauffeur
+Admin "1" o-- "*" Etudiant
+Admin "1" o-- "*" Trajet
 
-Les classes du modèle, comme `Chauffeur`, servent de conteneurs pour les données récupérées de la base. Ces objets sont ensuite utilisés dans les couches supérieures pour afficher les informations ou effectuer des opérations.
+Etudiant "1" -- "1" CompteUtilisateur : (idCompte)
+Chauffeur "1" -- "1" CompteUtilisateur : (idCompte)
 
-Par exemple, un objet `Chauffeur` contient des attributs comme `id`, `nom`, et `prenom`, qui sont affichés dans l'interface utilisateur.
+Trajet "1" *-- "1" Bus
+Trajet "1" *-- "1" Chauffeur
 
----
+Incident "1" .. "1" Bus : (busId)
+Incident "1" .. "1" Chauffeur : (chauffeurId)
 
-## Points d'amélioration
+IncidentDetails .. Incident
+IncidentDetails .. Bus
+IncidentDetails .. Chauffeur
 
-1. **Gestion des erreurs** : Certaines méthodes, comme `getChauffeurById`, ne gèrent pas les cas où aucun résultat n'est trouvé. Cela peut entraîner des exceptions dans l'interface utilisateur.
+@enduml
 
-2. **Validation des données** : Il serait utile d'ajouter une validation des entrées utilisateur dans les classes de service pour éviter les erreurs au niveau de la base de données.
-
-3. **Couplage entre les couches** : Certaines classes, comme `ChauffeurDashboard`, dépendent directement des classes de service. Une interface pourrait être utilisée pour réduire ce couplage.
-
----
-
-## Schéma explicatif
-
-```plaintext
-+----------------+       +----------------+       +----------------+
-|     UI         | <---> |    Service     | <---> |      DAO       |
-| (LoginFrame,   |       | (UserService,  |       | (UserDAO,      |
-| ChauffeurDash) |       | ChauffeurServ) |       | ChauffeurDAO)  |
-+----------------+       +----------------+       +----------------+
-        |                          |                          |
-        |                          |                          |
-        v                          v                          v
-+----------------+       +----------------+       +----------------+
-|    Model       |       |   Database     |       |   SQL Queries  |
-| (Chauffeur,    |       | (MySQL, etc.)  |       | (SELECT,       |
-| Trajet, etc.)  |       |                |       | INSERT, etc.)  |
-+----------------+       +----------------+       +----------------+
-```
-
-Ce schéma montre comment les différentes couches interagissent entre elles. Chaque couche a une responsabilité spécifique et communique uniquement avec les couches adjacentes.
-
----
-
-## Diagramme de Classes
-
-Voici un diagramme de classes simplifié pour représenter les principales entités de l'application et leurs relations :
-
-```plaintext
-+----------------+       +----------------+       +----------------+
-|   Chauffeur    |       |      Bus       |       |     Trajet     |
-+----------------+       +----------------+       +----------------+
-| - id: int      |       | - id: int      |       | - id: int      |
-| - nom: String  |       | - marque:      |       | - pointDepart: |
-| - prenom:      |       |   String       |       |   String       |
-| - typePermis:  |       | - matricule:   |       | - pointArrivee:|
-|   String       |       |   String       |       |   String       |
-+----------------+       | - capacite:    |       | - heureDepart: |
-                          |   int          |       |   Date         |
-                          +----------------+       +----------------+
-        |                          |                          |
-        |                          |                          |
-        v                          v                          v
-+----------------+       +----------------+       +----------------+
-|   Incident     |       |   ConnexionBDD |       |     User       |
-+----------------+       +----------------+       +----------------+
-| - id: int      |       | - connection:  |       | - id: int      |
-| - description: |       |   Connection   |       +----------------+
-|   String       |       +----------------+
-| - date: Date   |
-+----------------+
-```
-
-Ce diagramme montre les principales classes du modèle, leurs attributs, et leurs relations. Par exemple, un `Trajet` est associé à un `Chauffeur` et un `Bus`. Les classes comme `ConnexionBDD` sont utilisées pour gérer les connexions à la base de données.
-
----
-
-## Diagramme de Classes Détailé
-
-Voici un diagramme de classes détaillé pour représenter les principales entités de l'application, leurs attributs, méthodes, et relations :
-
-```plaintext
-+----------------+       +----------------+       +----------------+
-|   Chauffeur    |       |      Bus       |       |     Trajet     |
-+----------------+       +----------------+       +----------------+
-| - id: int      |       | - id: int      |       | - id: int      |
-| - nom: String  |       | - marque:      |       | - pointDepart: |
-| - prenom:      |       |   String       |       |   String       |
-| - typePermis:  |       | - matricule:   |       | - pointArrivee:|
-|   String       |       |   String       |       |   String       |
-| - telephone:   |       | - capacite:    |       | - heureDepart: |
-|   String       |       |   int          |       |   Date         |
-+----------------+       +----------------+       +----------------+
-| + getId(): int |       | + getId(): int |       | + getId(): int |
-| + getNom():    |       | + getMarque(): |       | + getPointDep():
-|   String       |       |   String       |       |   String       |
-| + getPrenom(): |       | + getMatricule:|       | + getPointArr():
-|   String       |       |   String       |       |   String       |
-+----------------+       +----------------+       +----------------+
-        |                          |                          |
-        |                          |                          |
-        v                          v                          v
-+----------------+       +----------------+       +----------------+
-|   Incident     |       |   ConnexionBDD |       |     User       |
-+----------------+       +----------------+       +----------------+
-| - id: int      |       | - connection:  |       | - id: int      |
-| - description: |       |   Connection   |       | - username:    |
-|   String       |       +----------------+       |   String       |
-| - date: Date   |                                  | - password:    |
-| - chauffeurId: |                                  |   String       |
-|   int          |                                  +----------------+
-+----------------+
-| + getId(): int |
-| + getDesc():   |
-|   String       |
-+----------------+
-```
-
-### Explications :
-
-1. **Chauffeur** :
-   - Contient des informations personnelles comme `nom`, `prenom`, et `typePermis`.
-   - Méthodes principales : `getId()`, `getNom()`, `getPrenom()`.
-
-2. **Bus** :
-   - Représente les véhicules assignés aux trajets.
-   - Attributs comme `marque`, `matricule`, et `capacite`.
-   - Méthodes principales : `getId()`, `getMarque()`, `getMatricule()`.
-
-3. **Trajet** :
-   - Définit les trajets avec des points de départ et d'arrivée, ainsi que l'heure de départ.
-   - Méthodes principales : `getId()`, `getPointDepart()`, `getPointArrivee()`.
-
-4. **Incident** :
-   - Permet de signaler des incidents liés aux bus.
-   - Contient des informations comme `description`, `date`, et `chauffeurId`.
-   - Méthodes principales : `getId()`, `getDescription()`.
-
-5. **ConnexionBDD** :
-   - Gère la connexion à la base de données.
-   - Attribut principal : `connection`.
-
-6. **User** :
-   - Représente les utilisateurs génériques de l'application.
-   - Attributs comme `username` et `password`.
-
-Ce diagramme montre non seulement les relations entre les classes, mais aussi leurs attributs et méthodes principales pour une meilleure compréhension.
-
----
-
-## Diagramme de Classes Complet
-
-Voici un diagramme de classes complet pour inclure toutes les entités du projet, leurs relations, attributs, et méthodes utilisées :
-
-```plaintext
-+----------------+       +----------------+       +----------------+
-|   Chauffeur    |       |      Bus       |       |     Trajet     |
-+----------------+       +----------------+       +----------------+
-| - id: int      |       | - id: int      |       | - id: int      |
-| - nom: String  |       | - marque:      |       | - pointDepart: |
-| - prenom:      |       |   String       |       |   String       |
-| - typePermis:  |       | - matricule:   |       | - pointArrivee:|
-|   String       |       |   String       |       |   String       |
-| - telephone:   |       | - capacite:    |       | - heureDepart: |
-|   String       |       |   int          |       |   Date         |
-+----------------+       +----------------+       +----------------+
-| + getId(): int |       | + getId(): int |       | + getId(): int |
-| + getNom():    |       | + getMarque(): |       | + getPointDep():
-|   String       |       |   String       |       |   String       |
-| + getPrenom(): |       | + getMatricule:|       | + getPointArr():
-|   String       |       |   String       |       |   String       |
-+----------------+       +----------------+       +----------------+
-        |                          |                          |
-        |                          |                          |
-        v                          v                          v
-+----------------+       +----------------+       +----------------+
-|   Incident     |       |   ConnexionBDD |       |     User       |
-+----------------+       +----------------+       +----------------+
-| - id: int      |       | - connection:  |       | - id: int      |
-| - description: |       |   Connection   |       | - username:    |
-|   String       |       +----------------+       |   String       |
-| - date: Date   |                                  | - password:    |
-| - chauffeurId: |                                  |   String       |
-|   int          |                                  +----------------+
-+----------------+
-| + getId(): int |
-| + getDesc():   |
-|   String       |
-+----------------+
-        ^
-        |
-        |
-+----------------+       +----------------+       +----------------+
-|   Etudiant     |       |   Admin        |       |   IncidentDetails |
-+----------------+       +----------------+       +----------------+
-| - id: int      |       | - id: int      |       | - id: int         |
-| - nom: String  |       | - username:    |       | - incidentId: int |
-| - prenom:      |       |   String       |       | - details: String |
-| - email:       |       | - password:    |       | - date: Date      |
-|   String       |       |   String       |       +----------------+
-| - telephone:   |       +----------------+       | + getId(): int    |
-|   String       |       | + getId(): int |       | + getDetails():   |
-+----------------+       | + getUsername():       |   String          |
-| + getId(): int |       |   String       |       +----------------+
-| + getNom():    |       +----------------+
-|   String       |
-| + getPrenom(): |
-|   String       |
-+----------------+
-```
-
-### Explications :
-
-1. **Chauffeur** :
-   - Contient des informations personnelles comme `nom`, `prenom`, et `typePermis`.
-   - Méthodes principales : `getId()`, `getNom()`, `getPrenom()`.
-
-2. **Bus** :
-   - Représente les véhicules assignés aux trajets.
-   - Attributs comme `marque`, `matricule`, et `capacite`.
-   - Méthodes principales : `getId()`, `getMarque()`, `getMatricule()`.
-
-3. **Trajet** :
-   - Définit les trajets avec des points de départ et d'arrivée, ainsi que l'heure de départ.
-   - Méthodes principales : `getId()`, `getPointDepart()`, `getPointArrivee()`.
-
-4. **Incident** :
-   - Permet de signaler des incidents liés aux bus.
-   - Contient des informations comme `description`, `date`, et `chauffeurId`.
-   - Méthodes principales : `getId()`, `getDescription()`.
-
-5. **Etudiant** :
-   - Représente les étudiants utilisant le service.
-   - Attributs comme `nom`, `prenom`, `email`, et `telephone`.
-   - Méthodes principales : `getId()`, `getNom()`, `getPrenom()`.
-
-6. **Admin** :
-   - Représente les administrateurs de l'application.
-   - Attributs comme `username` et `password`.
-   - Méthodes principales : `getId()`, `getUsername()`.
-
-7. **IncidentDetails** :
-   - Fournit des détails supplémentaires sur les incidents.
-   - Attributs comme `incidentId`, `details`, et `date`.
-   - Méthodes principales : `getId()`, `getDetails()`.
-
-8. **ConnexionBDD** :
-   - Gère la connexion à la base de données.
-   - Attribut principal : `connection`.
-
-9. **User** :
-   - Représente les utilisateurs génériques de l'application.
-   - Attributs comme `username` et `password`.
-
-Ce diagramme inclut toutes les entités principales du projet, leurs relations, et les méthodes utilisées pour une vue complète et détaillée.

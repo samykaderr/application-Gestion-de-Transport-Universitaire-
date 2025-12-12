@@ -20,5 +20,12 @@ public class BusService {
     public void addBus(Bus bus) {
         busDAO.addBus(bus);
     }
-}
 
+    public void updateBus(Bus bus) {
+        busDAO.updateBus(bus);
+    }
+
+    public void deleteBus(int id) {
+        busDAO.deleteBus(id);
+    }
+}

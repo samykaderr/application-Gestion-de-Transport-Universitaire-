@@ -6,6 +6,7 @@ import Model.Trajet;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
 
 public class TrajetDAO {
 
@@ -14,7 +15,7 @@ public class TrajetDAO {
     public void addTrajet(Trajet trajet) {
         String sql = "INSERT INTO trajets (point_depart, point_arrivee, heure_depart, id_bus, id_chauffeur) VALUES (?, ?, ?, ?, ?)";
 
-        try (Connection conn = ConnexionBDD.getConnection();
+        try (Connection conn = ConnexionBDD.getConnexion();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setString(1, trajet.getPointDepart());
@@ -28,14 +29,14 @@ public class TrajetDAO {
             System.out.println("Trajet ajouté avec succès !");
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            LoggerUtil.log(Level.SEVERE, e.getMessage(), e);
         }
     }
 
     public void updateTrajet(Trajet trajet) {
         String sql = "UPDATE trajets SET point_depart = ?, point_arrivee = ?, heure_depart = ?, id_bus = ?, id_chauffeur = ? WHERE id = ?";
 
-        try (Connection conn = ConnexionBDD.getConnection();
+        try (Connection conn = ConnexionBDD.getConnexion();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setString(1, trajet.getPointDepart());
@@ -49,14 +50,14 @@ public class TrajetDAO {
             System.out.println("Trajet modifié avec succès !");
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            LoggerUtil.log(Level.SEVERE, e.getMessage(), e);
         }
     }
 
     public void deleteTrajet(int id) {
         String sql = "DELETE FROM trajets WHERE id = ?";
 
-        try (Connection conn = ConnexionBDD.getConnection();
+        try (Connection conn = ConnexionBDD.getConnexion();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setInt(1, id);
@@ -64,7 +65,7 @@ public class TrajetDAO {
             System.out.println("Trajet supprimé avec succès !");
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            LoggerUtil.log(Level.SEVERE, e.getMessage(), e);
         }
     }
 
@@ -75,12 +76,12 @@ public class TrajetDAO {
         // On utilise des alias (b.id, c.id) pour éviter les confusions entre les colonnes ID
         String sql = "SELECT t.id, t.point_depart, t.point_arrivee, t.heure_depart, " +
                 "b.id AS bus_id, b.matricule, b.marque, b.capacite, " +
-                "c.id AS chauffeur_id, c.nom, c.prenom, c.password, c.type_permis " +
+                "c.id AS chauffeur_id, c.nom, c.prenom, c.type_permis, c.id_compte " +
                 "FROM trajets t " +
                 "JOIN bus b ON t.id_bus = b.id " +
                 "JOIN chauffeur c ON t.id_chauffeur = c.id";
 
-        try (Connection conn = ConnexionBDD.getConnection();
+        try (Connection conn = ConnexionBDD.getConnexion();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
 
@@ -94,14 +95,12 @@ public class TrajetDAO {
                 );
 
                 // 2. Reconstitution de l'objet Chauffeur
-                // C'est ICI que l'erreur se produisait. J'utilise "type_permis" (nom standard SQL).
-                // Si votre colonne s'appelle "TypePermis" dans la base, changez la ligne ci-dessous.
                 Chauffeur chauffeur = new Chauffeur(
                         rs.getInt("chauffeur_id"),
                         rs.getString("nom"),
                         rs.getString("prenom"),
-                        rs.getString("password"),
-                        rs.getString("type_permis") // <--- CORRECTION ICI
+                        rs.getString("type_permis"),
+                        rs.getInt("id_compte")
                 );
 
                 // 3. Reconstitution de l'objet Trajet
@@ -109,17 +108,18 @@ public class TrajetDAO {
                         rs.getInt("id"),
                         rs.getString("point_depart"),
                         rs.getString("point_arrivee"),
-                        rs.getTime("heure_depart").toLocalTime(),
+                        rs.getTime("heure_depart").toLocalTime(), // Conversion
                         bus,
                         chauffeur
                 );
 
                 trajets.add(trajet);
             }
+
         } catch (SQLException e) {
-            System.out.println("Erreur SQL dans getAllTrajets : " + e.getMessage());
-            e.printStackTrace();
+            LoggerUtil.log(Level.SEVERE, e.getMessage(), e);
         }
+
         return trajets;
     }
 }

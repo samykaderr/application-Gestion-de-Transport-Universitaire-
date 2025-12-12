@@ -1,9 +1,11 @@
 package UI;
 
-import Model.Admin;
+import DATA.ChauffeurDAO;
+import DATA.EtudiantDAO;
 import Model.Chauffeur;
+import Model.CompteUtilisateur;
 import Model.Etudiant;
-import Service.UserService;
+import Service.CompteUtilisateurService;
 import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.FlatLightLaf;
 
@@ -16,8 +18,10 @@ public class LoginFrame extends JFrame {
 
     private final JTextField userField;
     private final JPasswordField passField;
+    private final CompteUtilisateurService compteUtilisateurService;
 
     public LoginFrame() {
+        this.compteUtilisateurService = new CompteUtilisateurService();
         setTitle("Connexion - Transport Scolaire");
         setSize(400, 450); // Un peu plus haut pour l'aération
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -45,11 +49,11 @@ public class LoginFrame extends JFrame {
         subtitleLabel.setForeground(Color.GRAY);
 
         // 2. CHAMP UTILISATEUR
-        JLabel lblUser = new JLabel("Nom d'utilisateur");
+        JLabel lblUser = new JLabel("Email");
         lblUser.setFont(new Font("Segoe UI", Font.BOLD, 12));
 
         userField = new JTextField();
-        userField.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, "Ex: admin ou matricule");
+        userField.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, "Ex: admin@example.com");
         userField.putClientProperty(FlatClientProperties.STYLE, "arc: 10; margin: 5,10,5,10"); // Arrondi et marge interne
         userField.setFont(new Font("Segoe UI", Font.PLAIN, 14));
 
@@ -99,56 +103,75 @@ public class LoginFrame extends JFrame {
 
         add(panel);
 
-        // --- LOGIQUE ---
+        // --- LOGIQUE DE CONNEXION ---
+        loginButton.addActionListener(e -> performLogin());
 
-        // Permettre de valider avec la touche "Entrée"
-        getRootPane().setDefaultButton(loginButton);
-
-        loginButton.addActionListener(_ -> performLogin());
+        // Permet de se connecter en appuyant sur "Entrée" depuis le champ de mot de passe
+        passField.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                if (e.getKeyCode() == KeyEvent.VK_ENTER) {
+                    performLogin();
+                }
+            }
+        });
     }
 
     private void performLogin() {
-        String username = userField.getText();
+        String email = userField.getText();
         String password = new String(passField.getPassword());
 
-        if (username.isEmpty() || password.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Veuillez remplir tous les champs.", "Attention", JOptionPane.WARNING_MESSAGE);
+        if (email.isEmpty() || password.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Veuillez remplir tous les champs.", "Erreur", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
-        try {
-            UserService userService = new UserService();
-            Object user = userService.login(username, password);
+        CompteUtilisateur user = compteUtilisateurService.login(email, password);
 
-            if (user != null) {
-                if (user instanceof Admin) {
+        if (user != null) {
+            switch (user.getRole()) {
+                case "admin":
                     new AdminDashboard().setVisible(true);
                     dispose();
-                } else if (user instanceof Etudiant) {
-                    new StudentDashboard((Etudiant) user).setVisible(true);
-                    dispose();
-                } else if (user instanceof Chauffeur) {
-                    new ChauffeurDashboard(((Chauffeur) user).getId()).setVisible(true);
-                    dispose();
-                }
-            } else {
-                // Animation simple : secouer le champ mot de passe (optionnel, juste change la couleur)
-                passField.putClientProperty("JComponent.outline", "error");
-                JOptionPane.showMessageDialog(this, "Identifiants incorrects.", "Erreur", JOptionPane.ERROR_MESSAGE);
+                    break;
+                case "etudiant":
+                    EtudiantDAO etudiantDAO = new EtudiantDAO();
+                    Etudiant etudiant = etudiantDAO.getEtudiantByAccountId(user.getId());
+                    if (etudiant != null) {
+                        // Si l'email de l'étudiant est null, utiliser l'email du compte
+                        if (etudiant.getEmail() == null || etudiant.getEmail().isEmpty()) {
+                            etudiant.setEmail(user.getEmail());
+                        }
+                        new StudentDashboard(etudiant).setVisible(true);
+                        dispose();
+                    } else {
+                        JOptionPane.showMessageDialog(this, "Profil étudiant non trouvé.", "Erreur", JOptionPane.ERROR_MESSAGE);
+                    }
+                    break;
+                case "chauffeur":
+                    ChauffeurDAO chauffeurDAO = new ChauffeurDAO();
+                    Chauffeur chauffeur = chauffeurDAO.getChauffeurByAccountId(user.getId());
+                    if (chauffeur != null) {
+                        new ChauffeurDashboard(chauffeur).setVisible(true);
+                        dispose();
+                    } else {
+                        JOptionPane.showMessageDialog(this, "Profil chauffeur non trouvé.", "Erreur", JOptionPane.ERROR_MESSAGE);
+                    }
+                    break;
+                default:
+                    JOptionPane.showMessageDialog(this, "Rôle non reconnu.", "Erreur", JOptionPane.ERROR_MESSAGE);
             }
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "Erreur de connexion base de données: " + ex.getMessage());
+        } else {
+            JOptionPane.showMessageDialog(this, "Email ou mot de passe incorrect.", "Erreur de connexion", JOptionPane.ERROR_MESSAGE);
         }
     }
 
     public static void main(String[] args) {
-        // Configuration FlatLaf
+        // Appliquer le look and feel FlatLaf
         try {
-            UIManager.put("Button.arc", 15);
-            UIManager.put("Component.arc", 10);
-            FlatLightLaf.setup();
-        } catch (Exception ex) {
-            System.err.println("Erreur FlatLaf");
+            UIManager.setLookAndFeel(new FlatLightLaf());
+        } catch (UnsupportedLookAndFeelException e) {
+            System.err.println("Failed to initialize LaF");
         }
 
         SwingUtilities.invokeLater(() -> new LoginFrame().setVisible(true));

@@ -21,6 +21,14 @@ public class ChauffeurService {
         chauffeurDAO.addChauffeur(chauffeur);
     }
 
+    public void deleteChauffeur(int id) {
+        chauffeurDAO.deleteChauffeur(id);
+    }
+
+    public void updateChauffeur(Chauffeur chauffeur) {
+        chauffeurDAO.updateChauffeur(chauffeur);
+    }
+
     public Chauffeur getChauffeurById(int id) {
         return chauffeurDAO.getChauffeurById(id);
     }

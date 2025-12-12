@@ -3,18 +3,23 @@ package Model;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Admin extends user {
+public class Admin {
+    private CompteUtilisateur compte;
     private List<Bus> busList;
     private List<Chauffeur> chauffeurList;
     private List<Etudiant> etudiantList;
     private List<Trajet> trajetList;
 
-    public Admin(int id, String nom, String prenom, String password) {
-        super(id, nom , prenom, password);
+    public Admin(CompteUtilisateur compte) {
+        this.compte = compte;
         this.busList = new ArrayList<>();
         this.chauffeurList = new ArrayList<>();
         this.etudiantList = new ArrayList<>();
         this.trajetList = new ArrayList<>();
+    }
+
+    public CompteUtilisateur getCompte() {
+        return compte;
     }
 
     // Methods for managing Bus

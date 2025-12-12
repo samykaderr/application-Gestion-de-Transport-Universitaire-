@@ -6,12 +6,13 @@ import Model.IncidentDetails;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
 
 public class IncidentDAO {
 
     public void addIncident(Incident incident) {
         String sql = "INSERT INTO incidents (bus_id, chauffeur_id, description, date, status) VALUES (?, ?, ?, ?, ?)";
-        try (Connection conn = ConnexionBDD.getConnection();
+        try (Connection conn = ConnexionBDD.getConnexion();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setInt(1, incident.getBusId());
@@ -22,7 +23,18 @@ public class IncidentDAO {
 
             pstmt.executeUpdate();
         } catch (SQLException e) {
-            e.printStackTrace();
+            LoggerUtil.log(Level.SEVERE, e.getMessage(), e);
+        }
+    }
+
+    public void deleteIncident(int incidentId) {
+        String sql = "DELETE FROM incidents WHERE id = ?";
+        try (Connection conn = ConnexionBDD.getConnexion();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, incidentId);
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            LoggerUtil.log(Level.SEVERE, e.getMessage(), e);
         }
     }
 
@@ -33,7 +45,7 @@ public class IncidentDAO {
                      "JOIN bus b ON i.bus_id = b.id " +
                      "JOIN chauffeur c ON i.chauffeur_id = c.id";
 
-        try (Connection conn = ConnexionBDD.getConnection();
+        try (Connection conn = ConnexionBDD.getConnexion();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
 
@@ -50,7 +62,7 @@ public class IncidentDAO {
                 ));
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            LoggerUtil.log(Level.SEVERE, e.getMessage(), e);
         }
         return incidents;
     }
