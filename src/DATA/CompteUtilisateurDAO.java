@@ -56,4 +56,39 @@ public class CompteUtilisateurDAO {
         }
         return null;
     }
+
+    public CompteUtilisateur getCompteById(int id) {
+        String sql = "SELECT * FROM comptes_utilisateurs WHERE id = ?";
+        try (Connection connexion = ConnexionBDD.getConnexion();
+             PreparedStatement statement = connexion.prepareStatement(sql)) {
+            statement.setInt(1, id);
+            ResultSet resultSet = statement.executeQuery();
+            if (resultSet.next()) {
+                return new CompteUtilisateur(
+                        resultSet.getInt("id"),
+                        resultSet.getString("email"),
+                        resultSet.getString("mot_de_passe"),
+                        resultSet.getString("role")
+                );
+            }
+        } catch (SQLException e) {
+            LoggerUtil.log(Level.SEVERE, e.getMessage(), e);
+        }
+        return null;
+    }
+
+    public boolean updateCompteUtilisateur(CompteUtilisateur compte) {
+        String sql = "UPDATE comptes_utilisateurs SET email = ?, mot_de_passe = ?, role = ? WHERE id = ?";
+        try (Connection conn = ConnexionBDD.getConnexion();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, compte.getEmail());
+            pstmt.setString(2, compte.getMotDePasse());
+            pstmt.setString(3, compte.getRole());
+            pstmt.setInt(4, compte.getId());
+            return pstmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            LoggerUtil.log(Level.SEVERE, e.getMessage(), e);
+        }
+        return false;
+    }
 }

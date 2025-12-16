@@ -17,4 +17,12 @@ public class CompteUtilisateurService {
     public CompteUtilisateur login(String email, String password) {
         return compteUtilisateurDAO.findByEmailAndPassword(email, password);
     }
+
+    public CompteUtilisateur getCompteById(int id) {
+        return compteUtilisateurDAO.getCompteById(id);
+    }
+
+    public boolean updateCompteUtilisateur(CompteUtilisateur compte) {
+        return compteUtilisateurDAO.updateCompteUtilisateur(compte);
+    }
 }

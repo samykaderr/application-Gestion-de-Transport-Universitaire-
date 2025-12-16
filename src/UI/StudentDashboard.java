@@ -1,9 +1,11 @@
 package UI;
 
 import Model.Etudiant;
+import Model.IncidentDetails;
 import Model.Trajet;
 import Service.EtudiantService;
 import Service.EtudiantTrajetService;
+import Service.IncidentService;
 import Service.TrajetService;
 import com.formdev.flatlaf.FlatLightLaf;
 
@@ -33,6 +35,7 @@ public class StudentDashboard extends JFrame {
     private final Etudiant etudiant;
     private final TrajetService trajetService;
     private final EtudiantTrajetService etudiantTrajetService;
+    private final IncidentService incidentService;
 
 
     // Composants UI
@@ -45,6 +48,7 @@ public class StudentDashboard extends JFrame {
         this.etudiant = etudiant;
         this.trajetService = new TrajetService();
         this.etudiantTrajetService = new EtudiantTrajetService();
+        this.incidentService = new IncidentService();
 
         initUI();
     }
@@ -68,6 +72,7 @@ public class StudentDashboard extends JFrame {
         contentPanel.add(createHomePanel(), "HOME");
         contentPanel.add(createTrajetsPanel(), "TRAJETS");
         contentPanel.add(createAbonnementPanel(), "ABONNEMENT");
+        contentPanel.add(createIncidentsPanel(), "INCIDENTS");
 
         add(contentPanel, BorderLayout.CENTER);
     }
@@ -98,6 +103,7 @@ public class StudentDashboard extends JFrame {
         sidebar.add(createMenuButton("Mon Profil", "HOME", "/resources/id-card.png"));
         sidebar.add(createMenuButton("Rechercher Trajet", "TRAJETS", "/resources/school-bus.png"));
         sidebar.add(createMenuButton("Mon Abonnement", "ABONNEMENT", "/resources/subscription-model.png"));
+        sidebar.add(createMenuButton("Incidents Bus", "INCIDENTS", "/resources/alert.png"));
 
         // Espace vide
         sidebar.add(Box.createGlue());
@@ -400,45 +406,507 @@ public class StudentDashboard extends JFrame {
         return row;
     }
 
-    // --- 3. ABONNEMENT (HISTORIQUE) ---
+    // --- 3. ABONNEMENT (HISTORIQUE + PAIEMENT) ---
     private JPanel createAbonnementPanel() {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBackground(BACKGROUND_COLOR);
-        panel.setBorder(new EmptyBorder(20, 20, 20, 20));
+        // Panel principal avec scroll pour tout voir
+        JPanel mainContainer = new JPanel();
+        mainContainer.setLayout(new BoxLayout(mainContainer, BoxLayout.Y_AXIS));
+        mainContainer.setBackground(BACKGROUND_COLOR);
+        mainContainer.setBorder(new EmptyBorder(20, 20, 20, 20));
 
-        JLabel title = new JLabel("Historique des paiements");
-        title.setFont(new Font("Segoe UI", Font.BOLD, 18));
-        title.setBorder(new EmptyBorder(0, 0, 15, 0));
-        panel.add(title, BorderLayout.NORTH);
+        // --- Section Paiement (En haut) ---
+        RoundedPanel paiementCard = new RoundedPanel(20, Color.WHITE);
+        paiementCard.setLayout(new BorderLayout(15, 15));
+        paiementCard.setBorder(new EmptyBorder(25, 25, 25, 25));
+        paiementCard.setMaximumSize(new Dimension(Integer.MAX_VALUE, 220));
+        paiementCard.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        // Titre section paiement avec icône credit-card
+        JPanel titlePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        titlePanel.setOpaque(false);
+        ImageIcon creditCardIcon = loadIcon("/resources/credit-card.png", 24, 24);
+        if (creditCardIcon != null) {
+            titlePanel.add(new JLabel(creditCardIcon));
+        } else {
+            JLabel fallbackIcon = new JLabel("💳");
+            fallbackIcon.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 20));
+            titlePanel.add(fallbackIcon);
+        }
+        JLabel titlePaiement = new JLabel("Paiement des Frais de Transport", SwingConstants.LEFT);
+        titlePaiement.setFont(new Font("Segoe UI", Font.BOLD, 20));
+        titlePaiement.setForeground(SIDEBAR_COLOR);
+        titlePanel.add(titlePaiement);
+
+        // Info statut actuel
+        boolean isPaid = "Payé".equalsIgnoreCase(etudiant.getStatutPaiement());
+        JPanel statusPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
+        statusPanel.setOpaque(false);
+
+        JLabel lblStatutLabel = new JLabel("Statut actuel:");
+        lblStatutLabel.setFont(new Font("Segoe UI", Font.PLAIN, 16));
+
+        JLabel lblStatutValue = new JLabel(isPaid ? "✓ PAYÉ" : "✗ NON PAYÉ");
+        lblStatutValue.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        lblStatutValue.setForeground(isPaid ? STATUS_OK : STATUS_WARN);
+
+        statusPanel.add(lblStatutLabel);
+        statusPanel.add(lblStatutValue);
+
+        // Panel info tarif
+        JPanel tarifPanel = new JPanel();
+        tarifPanel.setLayout(new BoxLayout(tarifPanel, BoxLayout.Y_AXIS));
+        tarifPanel.setOpaque(false);
+
+        // Tarif avec icône money-bag
+        JPanel tarifRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
+        tarifRow.setOpaque(false);
+        ImageIcon moneyBagIcon = loadIcon("/resources/money-bag.png", 20, 20);
+        if (moneyBagIcon != null) {
+            tarifRow.add(new JLabel(moneyBagIcon));
+        } else {
+            JLabel fallbackIcon = new JLabel("💰");
+            fallbackIcon.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 18));
+            tarifRow.add(fallbackIcon);
+        }
+        JLabel lblTarif = new JLabel("Tarif Abonnement Annuel: 1500 DA");
+        lblTarif.setFont(new Font("Segoe UI", Font.PLAIN, 16));
+        tarifRow.add(lblTarif);
+
+        // Période avec icône schedule
+        JPanel periodeRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
+        periodeRow.setOpaque(false);
+        ImageIcon scheduleIcon = loadIcon("/resources/schedule.png", 20, 20);
+        if (scheduleIcon != null) {
+            periodeRow.add(new JLabel(scheduleIcon));
+        } else {
+            JLabel fallbackIcon = new JLabel("📅");
+            fallbackIcon.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 18));
+            periodeRow.add(fallbackIcon);
+        }
+        JLabel lblPeriode = new JLabel("Période: Septembre 2024 - Août 2025");
+        lblPeriode.setFont(new Font("Segoe UI", Font.PLAIN, 16));
+        lblPeriode.setForeground(new Color(80, 80, 80));
+        periodeRow.add(lblPeriode);
+
+        tarifPanel.add(statusPanel);
+        tarifPanel.add(tarifRow);
+        tarifPanel.add(periodeRow);
+
+        // Panel bouton paiement
+        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        btnPanel.setOpaque(false);
+
+        JButton btnPayer = new JButton();
+        btnPayer.setText(isPaid ? "✓ Déjà Payé" : "Payer Maintenant");
+        btnPayer.setBackground(isPaid ? new Color(189, 195, 199) : STATUS_OK);
+        btnPayer.setEnabled(true); // Always enable the button
+        btnPayer.setForeground(Color.WHITE);
+        btnPayer.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        btnPayer.setPreferredSize(new Dimension(180, 45));
+        btnPayer.putClientProperty("JButton.buttonType", "roundRect");
+
+        btnPayer.addActionListener(e -> {
+            // Dialog de confirmation de paiement
+            JPanel paiementFormPanel = new JPanel(new GridBagLayout());
+            paiementFormPanel.setBorder(new EmptyBorder(15, 15, 15, 15));
+            GridBagConstraints gbc = new GridBagConstraints();
+            gbc.insets = new Insets(8, 8, 8, 8);
+            gbc.fill = GridBagConstraints.HORIZONTAL;
+
+            // Titre
+            JLabel lblTitre = new JLabel("💳 Paiement par Carte Dahabia");
+            lblTitre.setFont(new Font("Segoe UI", Font.BOLD, 16));
+            lblTitre.setForeground(SIDEBAR_COLOR);
+            gbc.gridx = 0; gbc.gridy = 0; gbc.gridwidth = 2;
+            paiementFormPanel.add(lblTitre, gbc);
+
+            // Séparateur
+            gbc.gridy = 1;
+            paiementFormPanel.add(new JSeparator(), gbc);
+
+            // Numéro de carte Dahabia (16 chiffres)
+            gbc.gridwidth = 1;
+            gbc.gridx = 0; gbc.gridy = 2;
+            JLabel lblNumCarte = new JLabel("N° Carte Dahabia:");
+            lblNumCarte.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+            paiementFormPanel.add(lblNumCarte, gbc);
+
+            gbc.gridx = 1;
+            JTextField txtNumCarte = new JTextField(20);
+            txtNumCarte.setToolTipText("Entrez les 16 chiffres de votre carte Dahabia");
+            // Limiter à 16 chiffres uniquement
+            ((javax.swing.text.AbstractDocument) txtNumCarte.getDocument()).setDocumentFilter(new javax.swing.text.DocumentFilter() {
+                @Override
+                public void insertString(FilterBypass fb, int offset, String string, javax.swing.text.AttributeSet attr) throws javax.swing.text.BadLocationException {
+                    String filtered = string.replaceAll("[^0-9]", "");
+                    if ((fb.getDocument().getLength() + filtered.length()) <= 16) {
+                        super.insertString(fb, offset, filtered, attr);
+                    }
+                }
+                @Override
+                public void replace(FilterBypass fb, int offset, int length, String text, javax.swing.text.AttributeSet attrs) throws javax.swing.text.BadLocationException {
+                    String filtered = text.replaceAll("[^0-9]", "");
+                    if ((fb.getDocument().getLength() - length + filtered.length()) <= 16) {
+                        super.replace(fb, offset, length, filtered, attrs);
+                    }
+                }
+            });
+            paiementFormPanel.add(txtNumCarte, gbc);
+
+            // Code de confirmation (CVV - 3 chiffres)
+            gbc.gridx = 0; gbc.gridy = 3;
+            JLabel lblCodeCVV = new JLabel("Code de confirmation:");
+            lblCodeCVV.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+            paiementFormPanel.add(lblCodeCVV, gbc);
+
+            gbc.gridx = 1;
+            JPasswordField txtCodeCVV = new JPasswordField(5);
+            txtCodeCVV.setToolTipText("Entrez les 3 chiffres au dos de votre carte");
+            // Limiter à 3 chiffres uniquement
+            ((javax.swing.text.AbstractDocument) txtCodeCVV.getDocument()).setDocumentFilter(new javax.swing.text.DocumentFilter() {
+                @Override
+                public void insertString(FilterBypass fb, int offset, String string, javax.swing.text.AttributeSet attr) throws javax.swing.text.BadLocationException {
+                    String filtered = string.replaceAll("[^0-9]", "");
+                    if ((fb.getDocument().getLength() + filtered.length()) <= 3) {
+                        super.insertString(fb, offset, filtered, attr);
+                    }
+                }
+                @Override
+                public void replace(FilterBypass fb, int offset, int length, String text, javax.swing.text.AttributeSet attrs) throws javax.swing.text.BadLocationException {
+                    String filtered = text.replaceAll("[^0-9]", "");
+                    if ((fb.getDocument().getLength() - length + filtered.length()) <= 3) {
+                        super.replace(fb, offset, length, filtered, attrs);
+                    }
+                }
+            });
+            paiementFormPanel.add(txtCodeCVV, gbc);
+
+            // Montant
+            gbc.gridx = 0; gbc.gridy = 4;
+            JLabel lblMontant = new JLabel("Montant à payer:");
+            lblMontant.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+            paiementFormPanel.add(lblMontant, gbc);
+
+            gbc.gridx = 1;
+            JLabel lblMontantValue = new JLabel("1500 DA");
+            lblMontantValue.setFont(new Font("Segoe UI", Font.BOLD, 16));
+            lblMontantValue.setForeground(new Color(39, 174, 96));
+            paiementFormPanel.add(lblMontantValue, gbc);
+
+            // Note d'info
+            gbc.gridx = 0; gbc.gridy = 5; gbc.gridwidth = 2;
+            JLabel lblNote = new JLabel("<html><i style='color:gray;font-size:10px'>🔒 Paiement sécurisé - Vos données sont protégées</i></html>");
+            paiementFormPanel.add(lblNote, gbc);
+
+            int result = JOptionPane.showConfirmDialog(this, paiementFormPanel,
+                "Paiement des Frais de Transport", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+
+            if (result == JOptionPane.OK_OPTION) {
+                // Validation du numéro de carte (16 chiffres)
+                String numCarte = txtNumCarte.getText().trim();
+                if (!numCarte.matches("\\d{16}")) {
+                    JOptionPane.showMessageDialog(this,
+                        "Veuillez entrer un numéro de carte Dahabia valide (16 chiffres).",
+                        "Erreur de validation", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+
+                // Validation du code CVV (3 chiffres)
+                String codeCVV = new String(txtCodeCVV.getPassword()).trim();
+                if (!codeCVV.matches("\\d{3}")) {
+                    JOptionPane.showMessageDialog(this,
+                        "Veuillez entrer un code de confirmation valide (3 chiffres).",
+                        "Erreur de validation", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+
+                // Mettre à jour le statut de paiement
+                etudiant.setStatutPaiement("Payé");
+                EtudiantService etudiantService = new EtudiantService();
+                etudiantService.updateEtudiant(etudiant);
+
+                // Afficher les 4 derniers chiffres de la carte
+                String carteMasquee = "**** **** **** " + numCarte.substring(12);
+
+                JOptionPane.showMessageDialog(this,
+                    "✅ Paiement effectué avec succès!\n\n" +
+                    "Carte Dahabia: " + carteMasquee + "\n" +
+                    "Montant: 1500 DA\n\n" +
+                    "Votre abonnement est maintenant actif.",
+                    "Paiement Confirmé", JOptionPane.INFORMATION_MESSAGE);
+
+                // Rafraîchir l'interface
+                refreshAbonnementPanel();
+                refreshHomePanel();
+            }
+        });
+
+        btnPanel.add(btnPayer);
+
+        paiementCard.add(titlePanel, BorderLayout.NORTH);
+        paiementCard.add(tarifPanel, BorderLayout.CENTER);
+        paiementCard.add(btnPanel, BorderLayout.SOUTH);
+
+        // --- Section Historique (En bas) ---
+        JPanel historiquePanel = new JPanel(new BorderLayout());
+        historiquePanel.setBackground(BACKGROUND_COLOR);
+
+        JLabel titleHistorique = new JLabel("📋 Historique des Paiements");
+        titleHistorique.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        titleHistorique.setBorder(new EmptyBorder(10, 0, 15, 0));
 
         JPanel listContainer = new JPanel();
         listContainer.setLayout(new BoxLayout(listContainer, BoxLayout.Y_AXIS));
         listContainer.setBackground(BACKGROUND_COLOR);
 
-        JScrollPane scroll = new JScrollPane(listContainer);
-        scroll.setBorder(null);
-        scroll.getViewport().setBackground(BACKGROUND_COLOR);
-        scroll.getVerticalScrollBar().setUnitIncrement(16);
-
-        // Simulation de données (À remplacer par etudiantTrajetService.getHistorique...)
-        // Comme le modèle exact d'historique n'est pas fourni, je simule des entrées basées sur l'étudiant
 
         if ("Payé".equalsIgnoreCase(etudiant.getStatutPaiement())) {
             // Carte Paiement Récent
-            String html = "<html><b>Abonnement Annuel (En cours)</b><br/>Date: 01/09/2024 - 31/08/2025<br/>Montant: 1500 DA</html>";
-            JPanel card = createInfoCard(html, new Color(230, 255, 230)); // Vert très clair
+            String html = "<html><b>✓ Abonnement Annuel (En cours)</b><br/>Période: 01/09/2024 - 31/08/2025<br/>Montant: 1500 DA<br/><span style='color:green'>Statut: Payé</span></html>";
+            JPanel card = createInfoCard(html, new Color(230, 255, 230));
             listContainer.add(card);
 
-            // Anciens
-            listContainer.add(Box.createVerticalStrut(10));
-            listContainer.add(createInfoCard("<html><b>Abonnement Annuel</b><br/>Date: 01/09/2023 - 31/08/2024<br/>Montant: 1500 DA</html>", Color.WHITE));
+            listContainer.add(Box.createVerticalStrut(15));
+            listContainer.add(createInfoCard("<html><b>Abonnement Annuel</b><br/>Période: 01/09/2023 - 31/08/2024<br/>Montant: 1500 DA<br/><span style='color:green'>Statut: Payé</span></html>", Color.WHITE));
         } else {
-            JLabel empty = new JLabel("Aucun historique de paiement actif.", SwingConstants.CENTER);
-            listContainer.add(empty);
+            JPanel emptyCard = new RoundedPanel(15, new Color(255, 245, 245));
+            emptyCard.setLayout(new BorderLayout());
+            emptyCard.setBorder(new EmptyBorder(20, 20, 20, 20));
+            JLabel emptyLabel = new JLabel("<html><center>⚠️ Aucun paiement enregistré.<br/>Veuillez effectuer le paiement ci-dessus.</center></html>", SwingConstants.CENTER);
+            emptyLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+            emptyLabel.setForeground(STATUS_WARN);
+            emptyCard.add(emptyLabel, BorderLayout.CENTER);
+            listContainer.add(emptyCard);
         }
 
-        panel.add(scroll, BorderLayout.CENTER);
+        historiquePanel.add(titleHistorique, BorderLayout.NORTH);
+        historiquePanel.add(listContainer, BorderLayout.CENTER);
+        historiquePanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        // Ajouter les sections au container principal
+        mainContainer.add(paiementCard);
+        mainContainer.add(Box.createVerticalStrut(20));
+        mainContainer.add(historiquePanel);
+
+        // Scroll principal pour tout le contenu
+        JScrollPane mainScroll = new JScrollPane(mainContainer);
+        mainScroll.setBorder(null);
+        mainScroll.getViewport().setBackground(BACKGROUND_COLOR);
+        mainScroll.getVerticalScrollBar().setUnitIncrement(16);
+        mainScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+
+        // Panel wrapper avec BorderLayout
+        JPanel wrapper = new JPanel(new BorderLayout());
+        wrapper.setBackground(BACKGROUND_COLOR);
+        wrapper.add(mainScroll, BorderLayout.CENTER);
+
+        return wrapper;
+    }
+
+    /**
+     * Rafraîchit le panel d'abonnement après un paiement
+     */
+    private void refreshAbonnementPanel() {
+        contentPanel.remove(contentPanel.getComponent(2)); // Supprimer l'ancien panel
+        contentPanel.add(createAbonnementPanel(), "ABONNEMENT", 2);
+        cardLayout.show(contentPanel, "ABONNEMENT");
+    }
+
+    /**
+     * Rafraîchit le panel d'accueil (profil) après un paiement
+     */
+    private void refreshHomePanel() {
+        contentPanel.remove(contentPanel.getComponent(0)); // Supprimer l'ancien panel
+        contentPanel.add(createHomePanel(), "HOME", 0);
+    }
+
+    // --- 4. INCIDENTS BUS ---
+    private JPanel createIncidentsPanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(BACKGROUND_COLOR);
+        panel.setBorder(new EmptyBorder(20, 20, 20, 20));
+
+        // En-tête avec titre et icône
+        JPanel headerPanel = new JPanel(new BorderLayout());
+        headerPanel.setBackground(BACKGROUND_COLOR);
+        headerPanel.setBorder(new EmptyBorder(0, 0, 15, 0));
+
+        JPanel titleRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        titleRow.setOpaque(false);
+        ImageIcon alertIcon = loadIcon("/resources/alert.png", 28, 28);
+        if (alertIcon != null) {
+            titleRow.add(new JLabel(alertIcon));
+        }
+        JLabel title = new JLabel("Incidents et Retards des Bus");
+        title.setFont(new Font("Segoe UI", Font.BOLD, 22));
+        title.setForeground(SIDEBAR_COLOR);
+        titleRow.add(title);
+
+        JLabel subtitle = new JLabel("Consultez les incidents signalés pour anticiper les retards");
+        subtitle.setFont(new Font("Segoe UI", Font.ITALIC, 14));
+        subtitle.setForeground(new Color(100, 100, 100));
+        subtitle.setBorder(new EmptyBorder(5, 38, 0, 0));
+
+        headerPanel.add(titleRow, BorderLayout.NORTH);
+        headerPanel.add(subtitle, BorderLayout.CENTER);
+
+        // Bouton Rafraîchir
+        JButton btnRefresh = new JButton("🔄 Actualiser");
+        btnRefresh.setBackground(SIDEBAR_COLOR);
+        btnRefresh.setForeground(Color.WHITE);
+        btnRefresh.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        btnRefresh.putClientProperty("JButton.buttonType", "roundRect");
+
+        JPanel refreshPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        refreshPanel.setOpaque(false);
+        refreshPanel.add(btnRefresh);
+        headerPanel.add(refreshPanel, BorderLayout.EAST);
+
+        // Liste des incidents
+        JPanel listContainer = new JPanel();
+        listContainer.setLayout(new BoxLayout(listContainer, BoxLayout.Y_AXIS));
+        listContainer.setBackground(BACKGROUND_COLOR);
+
+        JScrollPane scrollPane = new JScrollPane(listContainer);
+        scrollPane.setBorder(null);
+        scrollPane.getViewport().setBackground(BACKGROUND_COLOR);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+
+        // Charger les incidents
+        Runnable loadIncidents = () -> {
+            listContainer.removeAll();
+            List<IncidentDetails> incidents = incidentService.getAllIncidentsDetails();
+
+            if (incidents.isEmpty()) {
+                JPanel emptyCard = new RoundedPanel(15, new Color(230, 255, 230));
+                emptyCard.setLayout(new BorderLayout());
+                emptyCard.setBorder(new EmptyBorder(30, 30, 30, 30));
+                emptyCard.setMaximumSize(new Dimension(Integer.MAX_VALUE, 100));
+
+                JLabel emptyLabel = new JLabel("✅ Aucun incident signalé actuellement. Tous les bus circulent normalement.", SwingConstants.CENTER);
+                emptyLabel.setFont(new Font("Segoe UI", Font.PLAIN, 16));
+                emptyLabel.setForeground(STATUS_OK);
+                emptyCard.add(emptyLabel, BorderLayout.CENTER);
+                listContainer.add(emptyCard);
+            } else {
+                for (IncidentDetails incident : incidents) {
+                    JPanel card = createIncidentCard(incident);
+                    listContainer.add(card);
+                    listContainer.add(Box.createVerticalStrut(10));
+                }
+            }
+            listContainer.revalidate();
+            listContainer.repaint();
+        };
+
+        // Charger au démarrage
+        loadIncidents.run();
+
+        // Action du bouton Rafraîchir
+        btnRefresh.addActionListener(e -> loadIncidents.run());
+
+        panel.add(headerPanel, BorderLayout.NORTH);
+        panel.add(scrollPane, BorderLayout.CENTER);
+
         return panel;
+    }
+
+    /**
+     * Crée une carte d'incident pour l'affichage
+     */
+    private JPanel createIncidentCard(IncidentDetails incident) {
+        // Couleur selon le statut
+        boolean isResolved = "RESOLVED".equalsIgnoreCase(incident.getStatus());
+        Color cardColor = isResolved ? new Color(240, 255, 240) : new Color(255, 245, 238);
+        Color statusColor = isResolved ? STATUS_OK : STATUS_WARN;
+        String statusText = isResolved ? "RÉSOLU" : "EN COURS";
+        String statusIcon = isResolved ? "✅" : "⚠️";
+
+        RoundedPanel card = new RoundedPanel(15, cardColor);
+        card.setLayout(new BorderLayout(15, 10));
+        card.setBorder(new EmptyBorder(20, 20, 20, 20));
+        card.setMaximumSize(new Dimension(Integer.MAX_VALUE, 140));
+        card.setPreferredSize(new Dimension(0, 140));
+
+        // Icône de statut à gauche
+        JPanel iconPanel = new JPanel(new BorderLayout());
+        iconPanel.setOpaque(false);
+        iconPanel.setPreferredSize(new Dimension(50, 50));
+
+        JLabel iconLabel = new JLabel(statusIcon, SwingConstants.CENTER);
+        iconLabel.setFont(new Font("Segoe UI", Font.PLAIN, 28));
+        iconPanel.add(iconLabel, BorderLayout.CENTER);
+
+        // Infos centrales
+        JPanel infoPanel = new JPanel();
+        infoPanel.setLayout(new BoxLayout(infoPanel, BoxLayout.Y_AXIS));
+        infoPanel.setOpaque(false);
+
+        // Bus info
+        JPanel busRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
+        busRow.setOpaque(false);
+        ImageIcon busIcon = loadIcon("/resources/bus.png", 18, 18);
+        if (busIcon != null) {
+            busRow.add(new JLabel(busIcon));
+        }
+        JLabel lblBus = new JLabel("Bus: " + incident.getBusMarque() + " - " + incident.getBusMatricule());
+        lblBus.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        busRow.add(lblBus);
+
+        // Chauffeur
+        JPanel chauffeurRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
+        chauffeurRow.setOpaque(false);
+        ImageIcon chauffeurIcon = loadIcon("/resources/chauffeur.png", 18, 18);
+        if (chauffeurIcon != null) {
+            chauffeurRow.add(new JLabel(chauffeurIcon));
+        }
+        JLabel lblChauffeur = new JLabel("Chauffeur: " + incident.getChauffeurPrenom() + " " + incident.getChauffeurNom());
+        lblChauffeur.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        lblChauffeur.setForeground(new Color(80, 80, 80));
+        chauffeurRow.add(lblChauffeur);
+
+        // Description
+        JLabel lblDescription = new JLabel("📝 " + incident.getDescription());
+        lblDescription.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        lblDescription.setBorder(new EmptyBorder(5, 0, 0, 0));
+
+        infoPanel.add(busRow);
+        infoPanel.add(chauffeurRow);
+        infoPanel.add(lblDescription);
+
+        // Panel droit: date et statut
+        JPanel rightPanel = new JPanel();
+        rightPanel.setLayout(new BoxLayout(rightPanel, BoxLayout.Y_AXIS));
+        rightPanel.setOpaque(false);
+        rightPanel.setPreferredSize(new Dimension(150, 100));
+
+        // Date
+        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm");
+        String dateStr = incident.getDate() != null ? sdf.format(incident.getDate()) : "N/A";
+        JLabel lblDate = new JLabel("📅 " + dateStr);
+        lblDate.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        lblDate.setForeground(new Color(100, 100, 100));
+        lblDate.setAlignmentX(Component.RIGHT_ALIGNMENT);
+
+        // Statut
+        JLabel lblStatus = new JLabel(statusIcon + " " + statusText);
+        lblStatus.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        lblStatus.setForeground(statusColor);
+        lblStatus.setAlignmentX(Component.RIGHT_ALIGNMENT);
+        lblStatus.setBorder(new EmptyBorder(10, 0, 0, 0));
+
+        rightPanel.add(lblDate);
+        rightPanel.add(Box.createVerticalGlue());
+        rightPanel.add(lblStatus);
+
+        card.add(iconPanel, BorderLayout.WEST);
+        card.add(infoPanel, BorderLayout.CENTER);
+        card.add(rightPanel, BorderLayout.EAST);
+
+        // Animation hover
+        addSmoothHoverEffect(card, cardColor, CARD_HOVER_COLOR);
+
+        return card;
     }
 
     // ====================================================================================
@@ -449,11 +917,12 @@ public class StudentDashboard extends JFrame {
     private JPanel createInfoCard(String htmlContent, Color bgColor) {
         JPanel row = new RoundedPanel(15, bgColor);
         row.setLayout(new BorderLayout(10, 10));
-        row.setBorder(new EmptyBorder(15, 15, 15, 15));
-        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 80));
+        row.setBorder(new EmptyBorder(20, 20, 20, 20));
+        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 120));
+        row.setPreferredSize(new Dimension(0, 120));
 
         JLabel info = new JLabel(htmlContent);
-        info.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        info.setFont(new Font("Segoe UI", Font.PLAIN, 15));
         row.add(info, BorderLayout.CENTER);
 
         // Animation

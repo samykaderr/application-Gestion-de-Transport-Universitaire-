@@ -441,7 +441,26 @@ public class AdminDashboard extends JFrame {
         JTextField txtNom = new JTextField(10);
         JTextField txtPrenom = new JTextField(10);
         JTextField txtEmail = new JTextField(10);
+        JPasswordField txtPassword = new JPasswordField(10);
         JTextField txtCarte = new JTextField(10);
+        // Limiter la saisie à 12 chiffres uniquement
+        txtCarte.setToolTipText("Entrez exactement 12 chiffres");
+        ((javax.swing.text.AbstractDocument) txtCarte.getDocument()).setDocumentFilter(new javax.swing.text.DocumentFilter() {
+            @Override
+            public void insertString(FilterBypass fb, int offset, String string, javax.swing.text.AttributeSet attr) throws javax.swing.text.BadLocationException {
+                String filtered = string.replaceAll("[^0-9]", "");
+                if ((fb.getDocument().getLength() + filtered.length()) <= 12) {
+                    super.insertString(fb, offset, filtered, attr);
+                }
+            }
+            @Override
+            public void replace(FilterBypass fb, int offset, int length, String text, javax.swing.text.AttributeSet attrs) throws javax.swing.text.BadLocationException {
+                String filtered = text.replaceAll("[^0-9]", "");
+                if ((fb.getDocument().getLength() - length + filtered.length()) <= 12) {
+                    super.replace(fb, offset, length, filtered, attrs);
+                }
+            }
+        });
         JTextField txtArret = new JTextField(10);
         JComboBox<String> cbStatut = new JComboBox<>(new String[]{"Payé", "Non Payé"});
         JTextField txtId = new JTextField(); txtId.setVisible(false);
@@ -452,19 +471,23 @@ public class AdminDashboard extends JFrame {
         gbc.gridx=2; formPanel.add(new JLabel("Prénom:"), gbc);
         gbc.gridx=3; formPanel.add(txtPrenom, gbc);
 
-        // Ligne 2: Email et Carte
+        // Ligne 2: Email et Mot de passe
         gbc.gridx=0; gbc.gridy=1; formPanel.add(new JLabel("Email:"), gbc);
         gbc.gridx=1; formPanel.add(txtEmail, gbc);
-        gbc.gridx=2; formPanel.add(new JLabel("Carte:"), gbc);
-        gbc.gridx=3; formPanel.add(txtCarte, gbc);
+        gbc.gridx=2; formPanel.add(new JLabel("Mot de passe:"), gbc);
+        gbc.gridx=3; formPanel.add(txtPassword, gbc);
 
-        // Ligne 3: Arrêt et Statut
-        gbc.gridx=0; gbc.gridy=2; formPanel.add(new JLabel("Arrêt:"), gbc);
-        gbc.gridx=1; formPanel.add(txtArret, gbc);
-        gbc.gridx=2; formPanel.add(new JLabel("Statut:"), gbc);
-        gbc.gridx=3; formPanel.add(cbStatut, gbc);
+        // Ligne 3: Carte et Arrêt
+        gbc.gridx=0; gbc.gridy=2; formPanel.add(new JLabel("Carte:"), gbc);
+        gbc.gridx=1; formPanel.add(txtCarte, gbc);
+        gbc.gridx=2; formPanel.add(new JLabel("Arrêt:"), gbc);
+        gbc.gridx=3; formPanel.add(txtArret, gbc);
 
-        // Ligne 4: Bouton
+        // Ligne 4: Statut
+        gbc.gridx=0; gbc.gridy=3; formPanel.add(new JLabel("Statut:"), gbc);
+        gbc.gridx=1; formPanel.add(cbStatut, gbc);
+
+        // Ligne 5: Bouton
         JButton btnAdd = new JButton("Ajouter/Modifier");
         gbc.gridx=3; gbc.gridy=3; gbc.anchor = GridBagConstraints.EAST; formPanel.add(btnAdd, gbc);
         formPanel.add(txtId);
@@ -499,6 +522,12 @@ public class AdminDashboard extends JFrame {
                             txtCarte.setText(etudiant.getNumCarte());
                             txtArret.setText(etudiant.getArretPrincipal());
                             cbStatut.setSelectedItem(etudiant.getStatutPaiement());
+                            // Récupérer l'ancien mot de passe
+                            CompteUtilisateurService compteService = new CompteUtilisateurService();
+                            CompteUtilisateur compte = compteService.getCompteById(etudiant.getIdCompte());
+                            if (compte != null) {
+                                txtPassword.setText(compte.getMotDePasse());
+                            }
                         },
                         // Delete Action
                         e -> {
@@ -516,26 +545,48 @@ public class AdminDashboard extends JFrame {
 
         btnAdd.addActionListener(_ -> {
             try {
+                // Validation du numéro de carte : doit contenir exactement 12 chiffres
+                String numCarte = txtCarte.getText().trim();
+                if (!numCarte.matches("\\d{12}")) {
+                    JOptionPane.showMessageDialog(this, "Le numéro de carte doit contenir exactement 12 chiffres.", "Erreur de validation", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+
                 int id = txtId.getText().isEmpty() ? 0 : Integer.parseInt(txtId.getText());
                 Etudiant etudiant;
+                String password = new String(txtPassword.getPassword()).trim();
                 if (id == 0) { // Ajout
-                    // La création de compte pour l'étudiant doit être gérée (ex: email/mdp par défaut ou via un autre formulaire)
-                    CompteUtilisateur newCompte = new CompteUtilisateur(0, "etudiant@default.com", "password", "etudiant");
+                    // Validation du mot de passe
+                    if (password.isEmpty()) {
+                        JOptionPane.showMessageDialog(this, "Veuillez saisir un mot de passe.", "Erreur de validation", JOptionPane.ERROR_MESSAGE);
+                        return;
+                    }
+                    // La création de compte pour l'étudiant avec email et mot de passe saisis
+                    CompteUtilisateur newCompte = new CompteUtilisateur(0, txtEmail.getText().trim(), password, "etudiant");
                     int idCompte = new CompteUtilisateurService().createCompteUtilisateur(newCompte);
                     if (idCompte == -1) {
                         JOptionPane.showMessageDialog(this, "Erreur création compte étudiant", "Erreur", JOptionPane.ERROR_MESSAGE);
                         return;
                     }
-                    etudiant = new Etudiant(0, txtNom.getText(), txtPrenom.getText(), txtEmail.getText(), txtCarte.getText(), txtArret.getText(), (String) cbStatut.getSelectedItem(), idCompte);
+                    etudiant = new Etudiant(0, txtNom.getText(), txtPrenom.getText(), txtEmail.getText(), numCarte, txtArret.getText(), (String) cbStatut.getSelectedItem(), idCompte);
                     etudiantService.addEtudiant(etudiant);
                 } else { // Modification
                     Etudiant existing = etudiantService.getEtudiantById(id);
-                    etudiant = new Etudiant(id, txtNom.getText(), txtPrenom.getText(), txtEmail.getText(), txtCarte.getText(), txtArret.getText(), (String) cbStatut.getSelectedItem(), existing.getIdCompte());
+                    etudiant = new Etudiant(id, txtNom.getText(), txtPrenom.getText(), txtEmail.getText(), numCarte, txtArret.getText(), (String) cbStatut.getSelectedItem(), existing.getIdCompte());
                     etudiantService.updateEtudiant(etudiant);
+                    // Mise à jour du mot de passe si modifié
+                    if (!password.isEmpty()) {
+                        CompteUtilisateurService compteService = new CompteUtilisateurService();
+                        CompteUtilisateur compte = compteService.getCompteById(existing.getIdCompte());
+                        if (compte != null) {
+                            compte.setMotDePasse(password);
+                            compteService.updateCompteUtilisateur(compte);
+                        }
+                    }
                 }
                 refreshEtudiantList[0].run();
                 // Reset form
-                txtId.setText(""); txtNom.setText(""); txtPrenom.setText(""); txtEmail.setText(""); txtCarte.setText(""); txtArret.setText("");
+                txtId.setText(""); txtNom.setText(""); txtPrenom.setText(""); txtEmail.setText(""); txtPassword.setText(""); txtCarte.setText(""); txtArret.setText("");
             } catch (Exception ex) {
                 JOptionPane.showMessageDialog(this, "Erreur: " + ex.getMessage(), "Erreur", JOptionPane.ERROR_MESSAGE);
             }
@@ -650,6 +701,7 @@ public class AdminDashboard extends JFrame {
         JTextField txtNom = new JTextField(15);
         JTextField txtPrenom = new JTextField(15);
         JTextField txtEmail = new JTextField(15);
+        JPasswordField txtPassword = new JPasswordField(15);
         JTextField txtTypePermis = new JTextField(15);
 
         gbc.gridx = 0; gbc.gridy = 0; formPanel.add(new JLabel("Nom:"), gbc);
@@ -658,8 +710,10 @@ public class AdminDashboard extends JFrame {
         gbc.gridx = 1; gbc.gridy = 1; formPanel.add(txtPrenom, gbc);
         gbc.gridx = 0; gbc.gridy = 2; formPanel.add(new JLabel("Email:"), gbc);
         gbc.gridx = 1; gbc.gridy = 2; formPanel.add(txtEmail, gbc);
-        gbc.gridx = 0; gbc.gridy = 3; formPanel.add(new JLabel("Permis:"), gbc);
-        gbc.gridx = 1; gbc.gridy = 3; formPanel.add(txtTypePermis, gbc);
+        gbc.gridx = 0; gbc.gridy = 3; formPanel.add(new JLabel("Mot de passe:"), gbc);
+        gbc.gridx = 1; gbc.gridy = 3; formPanel.add(txtPassword, gbc);
+        gbc.gridx = 0; gbc.gridy = 4; formPanel.add(new JLabel("Permis:"), gbc);
+        gbc.gridx = 1; gbc.gridy = 4; formPanel.add(txtTypePermis, gbc);
 
         if (chauffeur != null) {
             txtNom.setText(chauffeur.getNom());
@@ -669,18 +723,29 @@ public class AdminDashboard extends JFrame {
             if (fullChauffeur != null) {
                 txtEmail.setText(fullChauffeur.getEmail());
             }
+            // Récupérer l'ancien mot de passe
+            CompteUtilisateurService compteService = new CompteUtilisateurService();
+            CompteUtilisateur compte = compteService.getCompteById(chauffeur.getIdCompte());
+            if (compte != null) {
+                txtPassword.setText(compte.getMotDePasse());
+            }
             txtEmail.setEditable(false); // L'email est la clé de connexion, ne pas le modifier ici
         }
 
         JButton btnSave = new JButton("Enregistrer");
         btnSave.addActionListener(_ -> {
             try {
+                String password = new String(txtPassword.getPassword()).trim();
                 if (chauffeur == null) { // Ajout
                     if (txtNom.getText().isEmpty() || txtPrenom.getText().isEmpty() || txtEmail.getText().isEmpty() || txtTypePermis.getText().isEmpty()) {
                         JOptionPane.showMessageDialog(dialog, "Veuillez remplir tous les champs.", "Erreur", JOptionPane.ERROR_MESSAGE);
                         return;
                     }
-                    CompteUtilisateur newCompte = new CompteUtilisateur(0, txtEmail.getText(), "password", "chauffeur"); // MDP par défaut
+                    if (password.isEmpty()) {
+                        JOptionPane.showMessageDialog(dialog, "Veuillez saisir un mot de passe.", "Erreur", JOptionPane.ERROR_MESSAGE);
+                        return;
+                    }
+                    CompteUtilisateur newCompte = new CompteUtilisateur(0, txtEmail.getText(), password, "chauffeur");
                     int idCompte = new CompteUtilisateurService().createCompteUtilisateur(newCompte);
 
                     if (idCompte != -1) {
@@ -693,6 +758,15 @@ public class AdminDashboard extends JFrame {
                 } else { // Modification
                     Chauffeur updatedChauffeur = new Chauffeur(chauffeur.getId(), txtNom.getText(), txtPrenom.getText(), txtTypePermis.getText(), chauffeur.getIdCompte());
                     chauffeurService.updateChauffeur(updatedChauffeur);
+                    // Mise à jour du mot de passe si modifié
+                    if (!password.isEmpty()) {
+                        CompteUtilisateurService compteService = new CompteUtilisateurService();
+                        CompteUtilisateur compte = compteService.getCompteById(chauffeur.getIdCompte());
+                        if (compte != null) {
+                            compte.setMotDePasse(password);
+                            compteService.updateCompteUtilisateur(compte);
+                        }
+                    }
                 }
                 refreshCallback.run();
                 dialog.dispose();

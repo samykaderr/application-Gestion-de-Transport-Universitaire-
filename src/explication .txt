@@ -40,14 +40,16 @@ class Etudiant {
   - id: int
   - nom: String
   - prenom: String
+  - email: String
   - numCarte: String
   - arretPrincipal: String
   - statutPaiement: String
   - idCompte: int
-  + Etudiant(id: int, nom: String, prenom: String, numCarte: String, arretPrincipal: String, statutPaiement: String, idCompte: int)
+  + Etudiant(id: int, nom: String, prenom: String, email: String, numCarte: String, arretPrincipal: String, statutPaiement: String, idCompte: int)
   + getId(): int
   + getNom(): String
   + getPrenom(): String
+  + getEmail(): String
   + getStatutPaiement(): String
   + getNumCarte(): String
   + getArretPrincipal(): String
@@ -55,6 +57,7 @@ class Etudiant {
   + setId(id: int): void
   + setNom(nom: String): void
   + setPrenom(prenom: String): void
+  + setEmail(email: String): void
   + setNumCarte(numCarte: String): void
   + setArretPrincipal(arretPrincipal: String): void
   + setStatutPaiement(statutPaiement: String): void
@@ -65,17 +68,20 @@ class Chauffeur {
   - id: int
   - nom: String
   - prenom: String
+  - email: String
   - typePermis: String
   - idCompte: int
   + Chauffeur(id: int, nom: String, prenom: String, typePermis: String, idCompte: int)
   + getId(): int
   + getNom(): String
   + getPrenom(): String
+  + getEmail(): String
   + getTypePermis(): String
   + getIdCompte(): int
   + setId(id: int): void
   + setNom(nom: String): void
   + setPrenom(prenom: String): void
+  + setEmail(email: String): void
   + setTypePermis(typePermis: String): void
   + setIdCompte(idCompte: int): void
   + toString(): String
@@ -128,6 +134,7 @@ class Incident {
   - date: Date
   - status: String
   + Incident(id: int, busId: int, chauffeurId: int, description: String, date: Date, status: String)
+  + Incident(busId: int, chauffeurId: int, description: String, date: Date, status: String)
   + getId(): int
   + getBusId(): int
   + getChauffeurId(): int
