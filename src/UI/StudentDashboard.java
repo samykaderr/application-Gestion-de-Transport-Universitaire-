@@ -499,7 +499,7 @@ public class StudentDashboard extends JFrame {
         JButton btnPayer = new JButton();
         btnPayer.setText(isPaid ? "✓ Déjà Payé" : "Payer Maintenant");
         btnPayer.setBackground(isPaid ? new Color(189, 195, 199) : STATUS_OK);
-        btnPayer.setEnabled(true); // Always enable the button
+        btnPayer.setEnabled(!isPaid); // Désactiver si le paiement est déjà effectué
         btnPayer.setForeground(Color.WHITE);
         btnPayer.setFont(new Font("Segoe UI", Font.BOLD, 14));
         btnPayer.setPreferredSize(new Dimension(180, 45));

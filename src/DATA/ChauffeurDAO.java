@@ -87,19 +87,21 @@ public class ChauffeurDAO {
     }
 
     public Chauffeur getChauffeurByAccountId(int accountId) {
-        String sql = "SELECT * FROM chauffeur WHERE id_compte = ?";
+        String sql = "SELECT c.*, cu.email FROM chauffeur c JOIN comptes_utilisateurs cu ON c.id_compte = cu.id WHERE c.id_compte = ?";
         try (Connection conn = ConnexionBDD.getConnexion();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setInt(1, accountId);
             ResultSet rs = pstmt.executeQuery();
             if (rs.next()) {
-                return new Chauffeur(
+                Chauffeur chauffeur = new Chauffeur(
                         rs.getInt("id"),
                         rs.getString("nom"),
                         rs.getString("prenom"),
                         rs.getString("type_permis"),
                         rs.getInt("id_compte")
                 );
+                chauffeur.setEmail(rs.getString("email"));
+                return chauffeur;
             }
         } catch (SQLException e) {
             LoggerUtil.log(Level.SEVERE, e.getMessage(), e);
